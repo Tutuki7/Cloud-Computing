@@ -7,7 +7,7 @@
 
 [Leonor Silva, 59811](https://github.com/lpmsilva)
 
-Tiago Pereira, 55854
+Tiago Pereira, 55854 (me)
 
 [Tiago Pina, 66101](https://github.com/tiagopina17)
 
