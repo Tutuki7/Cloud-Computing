@@ -1,0 +1,13 @@
+- name: Apply postgres manifest
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/{{ pg_target.manifest }}"
+
+- name: Wait for postgres rollout
+  ansible.builtin.command: >-
+    kubectl rollout status deployment/{{ pg_target.statefulset }}
+    -n {{ kube_namespace }}
+    --timeout={{ wait_timeout }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false

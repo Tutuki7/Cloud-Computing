@@ -1,0 +1,115 @@
+edition = "2023";
+
+package movieplatform.badges.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service BadgeService {
+  // Unary: list all badge definitions
+  rpc ListBadges(ListBadgesRequest) returns (ListBadgesResponse);
+  // Unary: get a single badge definition
+  rpc GetBadge(GetBadgeRequest) returns (GetBadgeResponse);
+  // Unary: create a badge definition
+  rpc CreateBadge(CreateBadgeRequest) returns (CreateBadgeResponse);
+  // Unary: update a badge definition
+  rpc UpdateBadge(UpdateBadgeRequest) returns (UpdateBadgeResponse);
+  // Unary: delete a badge definition
+  rpc DeleteBadge(DeleteBadgeRequest) returns (DeleteBadgeResponse);
+  // Unary: list badges awarded to a user
+  rpc GetUserBadges(GetUserBadgesRequest) returns (GetUserBadgesResponse);
+  // Unary: award a badge to a user
+  rpc AwardBadge(AwardBadgeRequest) returns (AwardBadgeResponse);
+
+}
+
+// ── Embedded messages ─────────────────────────────────────────────────────────
+
+message Badge {
+  int32  badge_id    = 1;
+  string title       = 2;
+  int32  milestone   = 3;   // not null in DB
+  string description = 4;   // nullable
+}
+
+message UserBadge {
+  int32                     badge_id   = 1;   // PK + FK → badges
+  string                    user_id    = 2;   // PK + FK → users
+  google.protobuf.Timestamp awarded_at = 3;   // DEFAULT NOW()
+  Badge                     badge      = 4;   // eagerly joined
+}
+
+// ── ListBadges ────────────────────────────────────────────────────────────────
+
+message ListBadgesRequest {}
+
+message ListBadgesResponse {
+  repeated Badge badges = 1;
+}
+
+// ── GetBadge ──────────────────────────────────────────────────────────────────
+
+message GetBadgeRequest {
+  int32 badge_id = 1;
+}
+
+message GetBadgeResponse {
+  Badge badge = 1;
+}
+
+// ── CreateBadge ───────────────────────────────────────────────────────────────
+
+message CreateBadgeRequest {
+  string title       = 1;   // not null + unique
+  int32  milestone   = 2;   // not null
+  string description = 3;   // optional
+}
+
+message CreateBadgeResponse {
+  Badge badge = 1;
+}
+
+// ── UpdateBadge ───────────────────────────────────────────────────────────────
+
+message UpdateBadgeRequest {
+  int32  badge_id    = 1;
+  string title       = 2;   // only non-empty fields are applied
+  int32  milestone   = 3;
+  string description = 4;
+}
+
+message UpdateBadgeResponse {
+  Badge badge = 1;
+}
+
+// ── DeleteBadge ───────────────────────────────────────────────────────────────
+
+message DeleteBadgeRequest {
+  int32 badge_id = 1;
+}
+
+message DeleteBadgeResponse {
+  bool deleted = 1;
+}
+
+// ── GetUserBadges ─────────────────────────────────────────────────────────────
+
+message GetUserBadgesRequest {
+  string user_id = 1;
+}
+
+message GetUserBadgesResponse {
+  repeated UserBadge user_badges = 1;
+}
+
+// ── AwardBadge ────────────────────────────────────────────────────────────────
+
+message AwardBadgeRequest {
+  string user_id  = 1;
+  int32  badge_id = 2;
+  google.protobuf.Timestamp awarded_at = 3; // ADDED: explicit timestamp
+}
+
+message AwardBadgeResponse {
+  UserBadge user_badge = 1;
+}
+

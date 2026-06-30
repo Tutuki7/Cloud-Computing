@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package user;
+
+message User {
+  int32 user_id = 1;
+  string username = 2;
+  string email = 3;
+  string gender = 4;
+  int32 age = 5;
+}
+
+message GetUserRequest {
+  int32 user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message ValidateUserRequest {
+  int32 user_id = 1;
+}
+
+message ValidateUserResponse {
+  bool exists = 1;
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
+}

@@ -1,0 +1,12 @@
+fastapi==0.135.2
+psycopg2-binary==2.9.11
+pydantic==2.12.5
+python-dotenv==1.2.2
+SQLAlchemy==2.0.48
+uvicorn==0.42.0
+grpcio==1.78.0
+grpcio-tools==1.78.0
+httpx==0.28.1
+prometheus-fastapi-instrumentator
+google-genai
+python-jose[cryptography]

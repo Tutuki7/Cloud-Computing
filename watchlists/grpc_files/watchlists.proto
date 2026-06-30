@@ -1,0 +1,134 @@
+edition = "2023";
+
+package movieplatform.watchlists.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service WatchlistService {
+  // Unary: list all watchlists
+  rpc ListWatchlists(ListWatchlistsRequest) returns (ListWatchlistsResponse);
+
+  // Unary: get a single watchlist (with its movies)
+  rpc GetWatchlist(GetWatchlistRequest) returns (GetWatchlistResponse);
+
+  // Unary: create a watchlist
+  rpc CreateWatchlist(CreateWatchlistRequest) returns (CreateWatchlistResponse);
+
+  // Unary: update a watchlist title
+  rpc UpdateWatchlist(UpdateWatchlistRequest) returns (UpdateWatchlistResponse);
+
+  // Unary: delete a watchlist
+  rpc DeleteWatchlist(DeleteWatchlistRequest) returns (DeleteWatchlistResponse);
+
+  // Unary: list watchlists belonging to a user
+  rpc GetUserWatchlists(GetUserWatchlistsRequest) returns (GetUserWatchlistsResponse);
+
+  // Unary: add a movie to a watchlist
+  rpc AddMovieToWatchlist(AddMovieToWatchlistRequest) returns (AddMovieToWatchlistResponse);
+
+  // Unary: remove a movie from a watchlist
+  rpc RemoveMovieFromWatchlist(RemoveMovieFromWatchlistRequest) returns (RemoveMovieFromWatchlistResponse);
+}
+
+// ── Embedded messages ─────────────────────────────────────────────────────────
+
+message Watchlist {
+  int32                     watchlist_id = 1;
+  string                    user_id      = 2;   // FK → users
+  string                    title        = 3;   // NOT NULL
+  google.protobuf.Timestamp created_at   = 4;   // DEFAULT NOW()
+  google.protobuf.Timestamp updated_at   = 5;   // DEFAULT NOW()
+}
+
+message WatchlistMovie {
+  int32                     watchlist_id = 1;   // PK + FK → watchlists
+  string                    movie_id     = 2;   // PK + FK → movies
+  google.protobuf.Timestamp added_at     = 3;   // DEFAULT NOW()
+}
+
+// ── ListWatchlists ────────────────────────────────────────────────────────────
+
+message ListWatchlistsRequest {}
+
+message ListWatchlistsResponse {
+  repeated Watchlist watchlists = 1;
+}
+
+// ── GetWatchlist ──────────────────────────────────────────────────────────────
+
+message GetWatchlistRequest {
+  int32 watchlist_id = 1;
+}
+
+message GetWatchlistResponse {
+  Watchlist            watchlist = 1;
+  repeated WatchlistMovie movies = 2;
+}
+
+// ── CreateWatchlist ───────────────────────────────────────────────────────────
+
+message CreateWatchlistRequest {
+  string user_id = 1;
+  string title   = 2;   // NOT NULL
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message CreateWatchlistResponse {
+  Watchlist watchlist = 1;
+}
+
+// ── UpdateWatchlist ───────────────────────────────────────────────────────────
+
+message UpdateWatchlistRequest {
+  int32  watchlist_id = 1;
+  string title        = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+message UpdateWatchlistResponse {
+  Watchlist watchlist = 1;
+}
+
+// ── DeleteWatchlist ───────────────────────────────────────────────────────────
+
+message DeleteWatchlistRequest {
+  int32 watchlist_id = 1;
+}
+
+message DeleteWatchlistResponse {
+  bool deleted = 1;
+}
+
+// ── GetUserWatchlists ─────────────────────────────────────────────────────────
+
+message GetUserWatchlistsRequest {
+  string user_id = 1;
+}
+
+message GetUserWatchlistsResponse {
+  repeated Watchlist watchlists = 1;
+}
+
+// ── AddMovieToWatchlist ───────────────────────────────────────────────────────
+
+message AddMovieToWatchlistRequest {
+  int32  watchlist_id = 1;
+  string movie_id     = 2;
+  google.protobuf.Timestamp added_at = 3;
+}
+
+message AddMovieToWatchlistResponse {
+  WatchlistMovie entry = 1;
+}
+
+// ── RemoveMovieFromWatchlist ──────────────────────────────────────────────────
+
+message RemoveMovieFromWatchlistRequest {
+  int32  watchlist_id = 1;
+  string movie_id     = 2;
+}
+
+message RemoveMovieFromWatchlistResponse {
+  bool deleted = 1;
+}

@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package movie;
+
+message Movie {
+  int32 movie_id = 1;
+  string movie_title = 2;
+  string description = 3;
+  string imdb_url = 4;
+  int32 release_year = 5;
+  int32 runtime = 6;
+  string parental_rating = 7;
+  string poster_url = 8;
+  repeated string genres = 9;
+  float avg_rating = 10;
+}
+
+message GetMovieRequest {
+  int32 movie_id = 1;
+}
+
+message GetMovieResponse {
+  Movie movie = 1;
+}
+
+message ValidateMovieRequest {
+  int32 movie_id = 1;
+}
+
+message ValidateMovieResponse {
+  bool exists = 1;
+}
+
+message SearchMoviesRequest {
+  string title = 1;
+  string genre = 2;
+  int32 release_year = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message SearchMoviesResponse {
+  repeated Movie movies = 1;
+}
+
+message GetMoviesBatchRequest {
+  repeated int32 movie_ids = 1;
+}
+
+message GetMoviesBatchResponse {
+  repeated Movie movies = 1;
+}
+
+message Genre {
+  int32 genre_id = 1;
+  string name = 2;
+}
+
+message GetGenresRequest {}
+
+message GetGenresResponse {
+  repeated Genre genres = 1;
+}
+
+message ValidateGenreRequest {
+  int32 genre_id = 1;
+}
+
+message ValidateGenreResponse {
+  bool exists = 1;
+  string name = 2;
+}
+
+message UpdateAvgRatingRequest {
+  int32 movie_id = 1;
+  float avg_rating = 2;
+}
+
+message UpdateAvgRatingResponse {
+  bool success = 1;
+}
+
+service MovieService {
+  rpc GetMovie(GetMovieRequest) returns (GetMovieResponse);
+  rpc ValidateMovie(ValidateMovieRequest) returns (ValidateMovieResponse);
+  rpc SearchMovies(SearchMoviesRequest) returns (SearchMoviesResponse);
+  rpc GetMoviesBatch(GetMoviesBatchRequest) returns (GetMoviesBatchResponse);
+  rpc GetGenres(GetGenresRequest) returns (GetGenresResponse);
+  rpc ValidateGenre(ValidateGenreRequest) returns (ValidateGenreResponse); 
+  rpc UpdateAvgRating(UpdateAvgRatingRequest) returns (UpdateAvgRatingResponse); // novo
+}

@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+RUN pip install psycopg2-binary pandas
+
+WORKDIR /app
+
+COPY init.sql init.sql
+COPY populate-db.py populate-db.py
+COPY data/ data/
+
+CMD ["python", "populate-db.py"]

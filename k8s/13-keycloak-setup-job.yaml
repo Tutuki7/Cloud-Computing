@@ -1,0 +1,149 @@
+# -----------------------------------------------------------------------
+# Keycloak Setup Job
+# Runs once after Keycloak is ready and configures:
+#   - realm: cc2526
+#   - client: users-service (confidential, client credentials)
+#   - roles: user, admin
+#   - admin user in Keycloak
+# Uses the Keycloak Admin CLI (kcadm.sh) included in the Keycloak image.
+# -----------------------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-setup
+  namespace: default
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: keycloak-setup
+          image: quay.io/keycloak/keycloak:24.0
+          env:
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: ADMIN_PASSWORD
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: KEYCLOAK_CLIENT_SECRET
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+
+              KCADM=/opt/keycloak/bin/kcadm.sh
+              KC_URL=http://keycloak:8080
+
+              echo "Waiting for Keycloak..."
+              until $KCADM config credentials \
+                --server $KC_URL \
+                --realm master \
+                --user admin \
+                --password $KEYCLOAK_ADMIN_PASSWORD 2>/dev/null; do
+                echo "Keycloak not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "Logged in to Keycloak admin."
+
+              echo "Creating realm cc2526..."
+              $KCADM create realms \
+                -s realm=cc2526 \
+                -s enabled=true \
+                -s accessTokenLifespan=900 \
+                -s ssoSessionMaxLifespan=604800 || echo "Realm may already exist"
+
+              echo "Creating realm roles: user, admin..."
+              $KCADM create roles -r cc2526 -s name=user  || true
+              $KCADM create roles -r cc2526 -s name=admin || true
+
+              echo "Creating client: users-service..."
+              $KCADM create clients -r cc2526 \
+                -s clientId=users-service \
+                -s enabled=true \
+                -s publicClient=false \
+                -s serviceAccountsEnabled=true \
+                -s secret=$KEYCLOAK_CLIENT_SECRET \
+                -s 'directAccessGrantsEnabled=true' \
+                -s 'standardFlowEnabled=false' || echo "Client may already exist"
+
+              echo "Granting manage-users to users-service service account..."
+              $KCADM add-roles -r cc2526 \
+                --uusername service-account-users-service \
+                --cclientid realm-management \
+                --rolename manage-users || echo "Role may already be assigned"
+
+              echo "Creating admin user in Keycloak..."
+              $KCADM create users -r cc2526 \
+                -s username=admin \
+                -s email=admin@cc2526.com \
+                -s firstName=Admin \
+                -s lastName=User \
+                -s emailVerified=true \
+                -s enabled=true \
+                -s 'requiredActions=[]' || echo "Admin user may already exist"
+
+              $KCADM set-password -r cc2526 --username admin --new-password "$KEYCLOAK_ADMIN_PASSWORD"
+
+              echo "Assigning admin role in Keycloak..."
+              $KCADM add-roles -r cc2526 --uusername admin --rolename admin || echo "Role may already be assigned"
+
+              echo "Keycloak setup complete."
+---
+# -----------------------------------------------------------------------
+# Admin DB Init Job
+# Inserts the admin user into the local PostgreSQL users table.
+# Runs after keycloak-setup so the admin can immediately log in.
+# -----------------------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: admin-db-init
+  namespace: default
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: admin-db-init
+          image: postgres:15
+          env:
+            - name: PGHOST
+              value: postgres-users
+            - name: PGDATABASE
+              value: users_db
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_PASSWORD
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              echo "Waiting for users table..."
+              until psql -c "SELECT 1 FROM users LIMIT 1" 2>/dev/null; do
+                echo "Users table not ready, retrying in 5s..."
+                sleep 5
+              done
+
+              echo "Ensuring is_admin column exists..."
+              psql -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;"
+
+              echo "Inserting admin user into local DB..."
+              psql -c "
+                INSERT INTO users (username, email, password, is_admin, created_at, updated_at)
+                VALUES ('admin', 'admin@cc2526.com', 'managed-by-keycloak', true, NOW(), NOW())
+                ON CONFLICT (username) DO NOTHING;
+              "
+              echo "Admin DB init complete."

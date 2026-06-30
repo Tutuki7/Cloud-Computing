@@ -1,0 +1,50 @@
+- name: Delete Keycloak statefulset
+  ansible.builtin.command: kubectl delete statefulset keycloak --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete Keycloak PVC
+  ansible.builtin.command: kubectl delete pvc keycloak-data-keycloak-0 --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Apply Keycloak StatefulSet and Service
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/12-keycloak.yaml"
+
+- name: Wait for Keycloak rollout
+  ansible.builtin.command: >-
+    kubectl rollout status statefulset/keycloak
+    -n {{ kube_namespace }}
+    --timeout={{ wait_timeout }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+
+- name: Apply Keycloak setup job
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/13-keycloak-setup-job.yaml"
+
+- name: Wait for Keycloak setup completion
+  ansible.builtin.command: >-
+    kubectl wait --for=condition=complete job/keycloak-setup
+    -n {{ kube_namespace }}
+    --timeout={{ wait_timeout }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+
+- name: Wait for admin DB init completion
+  ansible.builtin.command: >-
+    kubectl wait --for=condition=complete job/admin-db-init
+    -n {{ kube_namespace }}
+    --timeout={{ wait_timeout }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false

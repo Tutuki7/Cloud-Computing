@@ -1,0 +1,5 @@
+- name: Get pods
+  ansible.builtin.command: kubectl get pods -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false

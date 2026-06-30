@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-db-watchlists
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: populate-db-watchlists
+          image: tpina17/populate-db-watchlists:v4
+          imagePullPolicy: Always
+          env:
+            - name: DB_HOST
+              value: postgres-watchlists
+            - name: DB_NAME
+              value: watchlists_db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_PASSWORD

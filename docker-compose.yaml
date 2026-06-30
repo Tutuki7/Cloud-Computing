@@ -1,0 +1,562 @@
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — users
+  # ---------------------------------------------------------------------------
+  postgres-users:
+    image: postgres:15
+    container_name: postgres-users
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: users_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-users:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d users_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — movies
+  # ---------------------------------------------------------------------------
+  postgres-movies:
+    image: postgres:15
+    container_name: postgres-movies
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: movies_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata-movies:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d movies_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — ratings (review-service + review-worker share this DB)
+  # ---------------------------------------------------------------------------
+  postgres-ratings:
+    image: postgres:15
+    container_name: postgres-ratings
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ratings_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata-ratings:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ratings_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — recommendations
+  # ---------------------------------------------------------------------------
+  postgres-recommendations:
+    image: postgres:15
+    container_name: postgres-recommendations
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: recommendations_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - pgdata-recommendations:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d recommendations_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — badges
+  # ---------------------------------------------------------------------------
+  postgres-badges:
+    image: postgres:15
+    container_name: postgres-badges
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: badges_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - pgdata-badges:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d badges_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — subscriptions
+  # ---------------------------------------------------------------------------
+  postgres-subscriptions:
+    image: postgres:15
+    container_name: postgres-subscriptions
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: subscriptions_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - pgdata-subscriptions:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d subscriptions_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — watchlists
+  # ---------------------------------------------------------------------------
+  postgres-watchlists:
+    image: postgres:15
+    container_name: postgres-watchlists
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: watchlists_db
+    ports:
+      - "5439:5432"
+    volumes:
+      - pgdata-watchlists:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d watchlists_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # Populate DBs
+  # ---------------------------------------------------------------------------
+  populate-db-users:
+    image: tpina17/populate-db-users:v2
+    container_name: populate-db-users
+    environment:
+      DB_HOST: postgres-users
+      DB_NAME: users_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-movies:
+    image: tpina17/populate-db-movies:v2
+    container_name: populate-db-movies
+    environment:
+      DB_HOST: postgres-movies
+      DB_NAME: movies_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-movies:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-ratings:
+    image: tpina17/populate-db-ratings:v2
+    container_name: populate-db-ratings
+    environment:
+      DB_HOST: postgres-ratings
+      DB_NAME: ratings_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-ratings:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-recommendations:
+    image: tpina17/populate-db-recommendations:v2
+    container_name: populate-db-recommendations
+    environment:
+      DB_HOST: postgres-recommendations
+      DB_NAME: recommendations_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-recommendations:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-badges:
+    image: tpina17/populate-db-badges:v2
+    container_name: populate-db-badges
+    environment:
+      DB_HOST: postgres-badges
+      DB_NAME: badges_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-badges:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-subscriptions:
+    image: tpina17/populate-db-subscriptions:v2
+    container_name: populate-db-subscriptions
+    environment:
+      DB_HOST: postgres-subscriptions
+      DB_NAME: subscriptions_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-subscriptions:
+        condition: service_healthy
+    restart: "no"
+
+  populate-db-watchlists:
+    image: tpina17/populate-db-watchlists:v2
+    container_name: populate-db-watchlists
+    environment:
+      DB_HOST: postgres-watchlists
+      DB_NAME: watchlists_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-watchlists:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Keycloak Identity Provider
+  # ---------------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      KC_DB: dev-file
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /realms/master HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Keycloak setup: realm, client, roles, admin user
+  # ---------------------------------------------------------------------------
+  keycloak-setup:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak-setup
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        KCADM=/opt/keycloak/bin/kcadm.sh
+        KC_URL=http://keycloak:8080
+
+        $$KCADM config credentials --server $$KC_URL --realm master --user admin --password $$KEYCLOAK_ADMIN_PASSWORD
+
+        $$KCADM create realms -s realm=cc2526 -s enabled=true \
+          -s accessTokenLifespan=900 -s ssoSessionMaxLifespan=604800 || echo "Realm already exists"
+
+        $$KCADM create roles -r cc2526 -s name=user  || true
+        $$KCADM create roles -r cc2526 -s name=admin || true
+
+        $$KCADM create clients -r cc2526 \
+          -s clientId=users-service \
+          -s enabled=true \
+          -s publicClient=false \
+          -s serviceAccountsEnabled=true \
+          -s secret=$$KEYCLOAK_CLIENT_SECRET \
+          -s directAccessGrantsEnabled=true \
+          -s standardFlowEnabled=false || echo "Client already exists"
+
+        $$KCADM create users -r cc2526 \
+          -s username=admin \
+          -s email=admin@cc2526.com \
+          -s firstName=Admin \
+          -s lastName=User \
+          -s emailVerified=true \
+          -s enabled=true \
+          -s 'requiredActions=[]' || echo "Admin user may already exist"
+
+        $$KCADM set-password -r cc2526 --username admin --new-password "$$KEYCLOAK_ADMIN_PASSWORD"
+        $$KCADM add-roles -r cc2526 --uusername admin --rolename admin || true
+
+        echo "Keycloak setup complete."
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Users Service — REST :8001 + gRPC :50053
+  # ---------------------------------------------------------------------------
+  users-service:
+    image: tpina17/users-service:v18
+    container_name: users-service
+    ports:
+      - "8001:8001"
+      - "50053:50053"
+    environment:
+      DB_HOST: postgres-users
+      DB_NAME: users_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REST_PORT: "8001"
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: cc2526
+      KEYCLOAK_CLIENT_ID: users-service
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+    depends_on:
+      populate-db-users:
+        condition: service_completed_successfully
+      keycloak-setup:
+        condition: service_completed_successfully
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Movies Service — REST :8002 + gRPC :50054
+  # ---------------------------------------------------------------------------
+  movies-service:
+    image: jrcarrasqueira/movies-service:v6
+    container_name: movies-service
+    ports:
+      - "8002:8002"
+      - "50054:50054"
+    environment:
+      DB_HOST: postgres-movies
+      DB_NAME: movies_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: cc2526
+      KEYCLOAK_CLIENT_ID: users-service
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+    depends_on:
+      populate-db-movies:
+        condition: service_completed_successfully
+      keycloak-setup:
+        condition: service_completed_successfully
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Review Service — REST :8003 + gRPC :50055
+  # ---------------------------------------------------------------------------
+  review-service:
+    image: jrcarrasqueira/review-service:v8
+    container_name: review-service
+    ports:
+      - "8003:8003"
+      - "50055:50055"
+    environment:
+      DB_HOST: postgres-ratings
+      DB_NAME: ratings_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      USER_GRPC_URL: users-service:50053
+      MOVIE_GRPC_URL: movies-service:50054
+      PROJECT_ID: ${PROJECT_ID}
+      PUBSUB_TOPIC: ${PUBSUB_TOPIC}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: cc2526
+      KEYCLOAK_CLIENT_ID: users-service
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/sa-key.json
+      ROOT_PATH: ""
+    volumes:
+      - ./sa-key.json:/var/secrets/google/sa-key.json:ro
+    depends_on:
+      postgres-ratings:
+        condition: service_healthy
+      populate-db-ratings:
+        condition: service_completed_successfully
+      users-service:
+        condition: service_started
+      movies-service:
+        condition: service_started
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Review Worker (Pub/Sub Consumer)
+  # ---------------------------------------------------------------------------
+  review-worker:
+    image: jrcarrasqueira/review-worker:v1.0
+    container_name: review-worker
+    environment:
+      DB_HOST: postgres-ratings
+      DB_NAME: ratings_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PROJECT_ID: ${PROJECT_ID}
+      REGION: ${REGION}
+      PUBSUB_SUBSCRIPTION: ${PUBSUB_SUBSCRIPTION}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/sa-key.json
+    volumes:
+      - ./sa-key.json:/var/secrets/google/sa-key.json:ro
+    depends_on:
+      postgres-ratings:
+        condition: service_healthy
+      populate-db-ratings:
+        condition: service_completed_successfully
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Recommendations Service — REST :8004 + gRPC :50056
+  # ---------------------------------------------------------------------------
+  recommendations-service:
+    image: jrcarrasqueira/recommendations-service:v7
+    container_name: recommendations-service
+    ports:
+      - "8004:8004"
+      - "50056:50056"
+    environment:
+      DB_HOST: postgres-recommendations
+      DB_NAME: recommendations_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REST_PORT: "8004"
+      GRPC_PORT: "50056"
+      USER_GRPC_URL: users-service:50053
+      MOVIE_GRPC_URL: movies-service:50054
+      REVIEW_GRPC_URL: review-service:50055
+      PROJECT_ID: ${PROJECT_ID}
+      REGION: ${REGION}
+      MODEL: ${MODEL}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: cc2526
+      KEYCLOAK_CLIENT_ID: users-service
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/sa-key.json
+      ROOT_PATH: ""
+    volumes:
+      - ./sa-key.json:/var/secrets/google/sa-key.json:ro
+    depends_on:
+      postgres-recommendations:
+        condition: service_healthy
+      populate-db-recommendations:
+        condition: service_completed_successfully
+      users-service:
+        condition: service_started
+      movies-service:
+        condition: service_started
+      review-service:
+        condition: service_started
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Badges Service — REST :8006 + gRPC :50058
+  # ---------------------------------------------------------------------------
+  badges-service:
+    image: leonor2004/badges-service:v15
+    container_name: badges-service
+    ports:
+      - "8006:8006"
+      - "50058:50058"
+    environment:
+      DB_HOST: postgres-badges
+      DB_NAME: badges_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      USER_GRPC_URL: users-service:50053
+      BADGE_GRPC_URL: badges-service:50058
+    depends_on:
+      populate-db-badges:
+        condition: service_completed_successfully
+      users-service:
+        condition: service_started
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Subscriptions Service — REST :8005 + gRPC :50057
+  # ---------------------------------------------------------------------------
+  subscriptions-service:
+    image: leonor2004/subscriptions-service:v10
+    container_name: subscriptions-service
+    ports:
+      - "8005:8005"
+      - "50057:50057"
+    environment:
+      DB_HOST: postgres-subscriptions
+      DB_NAME: subscriptions_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      USER_GRPC_URL: users-service:50053
+    depends_on:
+      populate-db-subscriptions:
+        condition: service_completed_successfully
+      users-service:
+        condition: service_started
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Watchlists Service — REST :8007 + gRPC :50059
+  # ---------------------------------------------------------------------------
+  watchlists-service:
+    image: leonor2004/watchlists-service:v15
+    container_name: watchlists-service
+    ports:
+      - "8007:8007"
+      - "50059:50059"
+    environment:
+      DB_HOST: postgres-watchlists
+      DB_NAME: watchlists_db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      USER_GRPC_URL: users-service:50053
+      WATCHLIST_GRPC_URL: watchlists-service:50059
+    depends_on:
+      populate-db-watchlists:
+        condition: service_completed_successfully
+      users-service:
+        condition: service_started
+    restart: always
+
+volumes:
+  pgdata-users:
+  pgdata-movies:
+  pgdata-ratings:
+  pgdata-recommendations:
+  pgdata-badges:
+  pgdata-subscriptions:
+  pgdata-watchlists:

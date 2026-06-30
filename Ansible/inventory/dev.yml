@@ -1,0 +1,59 @@
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: /usr/bin/python3
+  vars:
+    gcp_project: cnprojeto-499609
+    gcp_zone: europe-west1-b
+    gke_cluster_name: group8-cluster
+    kube_namespace: default
+    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') }}"
+    manifests_dir: ~/CC2526-Group8/k8s
+    sa_key_path: ~/CC2526-Group8/sa-key.json
+    wait_timeout: 1800s
+    ingress_namespace: ingress-nginx
+    cert_manager_namespace: cert-manager
+    external_secrets_namespace: external-secrets
+    monitoring_namespace: monitoring
+    eso_gcp_service_account: "eso-sa@{{ gcp_project }}.iam.gserviceaccount.com"
+
+    web_host: "{{ lookup('env', 'WEB_HOST') }}"
+    grafana_domain: "8089-{{ web_host }}"
+
+    postgres_manifests:
+      - 02-postgres-users.yaml
+      - 02-postgres-movies.yaml
+      - 02-postgres-ratings.yaml
+      - 02-postgres-recommendations.yaml
+      - 02-postgres-subscriptions.yaml
+      - 02-postgres-badges.yaml
+      - 02-postgres-watchlists.yaml
+
+    postgres_wait_targets:
+      - { manifest: "02-postgres-users.yaml", statefulset: "postgres-users" }
+      - { manifest: "02-postgres-movies.yaml", statefulset: "postgres-movies" }
+      - { manifest: "02-postgres-ratings.yaml", statefulset: "postgres-ratings" }
+      - { manifest: "02-postgres-recommendations.yaml", statefulset: "postgres-recommendations" }
+      - { manifest: "02-postgres-subscriptions.yaml", statefulset: "postgres-subscriptions" }
+      - { manifest: "02-postgres-badges.yaml", statefulset: "postgres-badges" }
+      - { manifest: "02-postgres-watchlists.yaml", statefulset: "postgres-watchlists" }
+
+    seed_jobs:
+      - { manifest: "03-populate-db-users.yaml", job: "populate-db-users" }
+      - { manifest: "03-populate-db-movies.yaml", job: "populate-db-movies" }
+      - { manifest: "03-populate-db-ratings.yaml", job: "populate-db-ratings" }
+      - { manifest: "03-populate-db-recommendations.yaml", job: "populate-db-recommendations" }
+      - { manifest: "03-populate-db-subscriptions.yaml", job: "populate-db-subscriptions" }
+      - { manifest: "03-populate-db-badges.yaml", job: "populate-db-badges" }
+      - { manifest: "03-populate-db-watchlists.yaml", job: "populate-db-watchlists" }
+
+    service_manifests:
+      - 04-users-service.yaml
+      - 05-movies-service.yaml
+      - 06-reviews-service.yaml
+      - 07-review-worker.yaml
+      - 08-recommendations-service.yaml
+      - 09-badges-service.yaml
+      - 10-subscriptions-service.yaml
+      - 11-watchlists-service.yaml

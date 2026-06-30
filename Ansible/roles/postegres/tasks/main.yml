@@ -1,0 +1,5 @@
+- name: Apply postgres manifests one by one
+  ansible.builtin.include_tasks: apply_and_wait.yml
+  loop: "{{ postgres_wait_targets }}"
+  loop_control:
+    loop_var: pg_target

@@ -1,0 +1,10 @@
+FROM postgres:15
+
+WORKDIR /db
+
+COPY restore.sh restore.sh
+COPY backup.dump backup.dump
+
+RUN chmod +x restore.sh
+
+CMD ["bash", "restore.sh"]

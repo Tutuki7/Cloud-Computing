@@ -1,0 +1,5 @@
+- name: Apply microservice manifests
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/{{ item }}"
+  loop: "{{ service_manifests }}"

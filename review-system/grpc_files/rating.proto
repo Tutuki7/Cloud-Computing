@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package review;
+
+import "google/protobuf/timestamp.proto";
+
+message Rating {
+  int32 rating_id = 1;
+  int32 user_id = 2;
+  int32 movie_id = 3;
+  float rating = 4;
+  string review = 5;
+  string tag = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message GetRatingsRequest {
+  int32 user_id = 1;        // optional
+  int32 movie_id = 2;       // optional
+  float min_rating = 3;    // optional
+  float max_rating = 4;    // optional
+}
+
+message GetRatingsResponse {
+  repeated Rating ratings = 1;
+}
+
+message GetMovieRatingsRequest {
+  int32 movie_id = 1;
+}
+
+message GetMovieRatingsResponse {
+  repeated Rating ratings = 1;
+}
+
+message GetUserRatingsRequest {
+  int32 user_id = 1;
+}
+
+message GetUserRatingsResponse {
+  repeated Rating ratings = 1;
+}
+
+service ReviewService {
+  rpc GetRatings(GetRatingsRequest) returns (GetRatingsResponse);
+  rpc GetMovieRatings(GetMovieRatingsRequest) returns (GetMovieRatingsResponse);
+  rpc GetUserRatings(GetUserRatingsRequest) returns (GetUserRatingsResponse);
+}

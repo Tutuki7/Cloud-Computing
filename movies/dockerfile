@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+WORKDIR /movies
+
+COPY requirements.txt requirements.txt
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN python -m grpc_tools.protoc \
+    -I=grpc \
+    --python_out=grpc \
+    --grpc_python_out=grpc \
+    grpc/movies.proto
+
+RUN sed -i 's/\r//' start.sh
+RUN chmod +x start.sh
+
+EXPOSE 8002
+EXPOSE 50054
+
+CMD ["/bin/sh", "/movies/start.sh"]

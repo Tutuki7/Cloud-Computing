@@ -1,0 +1,13 @@
+- name: Apply seed job
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/{{ seed_target.manifest }}"
+
+- name: Wait for seed job completion
+  ansible.builtin.command: >-
+    kubectl wait --for=condition=complete job/{{ seed_target.job }}
+    -n {{ kube_namespace }}
+    --timeout={{ wait_timeout }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false

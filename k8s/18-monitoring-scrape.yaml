@@ -1,0 +1,63 @@
+# Prometheus scrape config for group8 namespace
+# Picks up all pods with prometheus.io/scrape: "true" annotation
+apiVersion: v1
+kind: Secret
+metadata:
+  name: additional-scrape-configs
+  namespace: monitoring
+stringData:
+  prometheus-additional.yaml: |
+    - job_name: 'group8-pods'
+      kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+              - default
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: "true"
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: group8-services
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  kubernetesSDConfigs:
+    - role: Pod
+      namespaces:
+        names:
+          - default
+  relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: "true"
+    - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      action: replace
+      targetLabel: __metrics_path__
+      regex: (.+)
+    - sourceLabels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      targetLabel: __address__
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace

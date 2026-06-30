@@ -1,0 +1,105 @@
+name: Ansible Deploy
+
+on:
+  push:
+    branches: [tpereira]
+  pull_request:
+    branches: [tpereira]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ansible-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Show GitHub ref info
+        run: |
+          echo "github.ref_name=${{ github.ref_name }}"
+          echo "github.head_ref=${{ github.head_ref }}"
+          echo "github.sha=${{ github.sha }}"
+          pwd
+          ls -la
+          find . -maxdepth 3 -type d | sort
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_Tiago_Pereira }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT_Tiago_Pereira }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME_Tiago_Pereira }}
+          location: ${{ secrets.GCP_ZONE_Tiago_Pereira }}
+          project_id: ${{ secrets.GCP_PROJECT_ID_Tiago_Pereira }}
+
+      - name: Verify cluster access
+        run: kubectl get nodes
+
+      - name: Check if Ansible is installed
+        run: |
+          if command -v ansible >/dev/null 2>&1; then
+            echo "Ansible already installed"
+            ansible --version
+          else
+            echo "Ansible not found, installing..."
+            sudo apt update
+            sudo apt install -y ansible
+            ansible --version
+          fi
+
+      - name: Check ansible-galaxy
+        run: ansible-galaxy --version
+
+      - name: Install Ansible collection
+        working-directory: Ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Install Python dependencies for Ansible runtime
+        run: |
+          /opt/pipx/venvs/ansible-core/bin/python -m pip install --upgrade pip
+          /opt/pipx/venvs/ansible-core/bin/python -m pip install kubernetes PyYAML jsonpatch
+
+      - name: Verify Python kubernetes dependency
+        run: |
+          /opt/pipx/venvs/ansible-core/bin/python -c "import kubernetes; print('kubernetes ok')"
+
+      - name: Create inventory file
+        run: |
+          mkdir -p Ansible/inventory
+          cat > Ansible/inventory/dev.yml <<EOF
+          all:
+            hosts:
+              localhost:
+                ansible_connection: local
+                ansible_python_interpreter: /opt/pipx/venvs/ansible-core/bin/python
+            vars:
+              gcp_project: ${{ secrets.GCP_PROJECT_ID_Tiago_Pereira }}
+              gcp_zone: ${{ secrets.GCP_ZONE_Tiago_Pereira }}
+              gke_cluster_name: ${{ secrets.GKE_CLUSTER_NAME_Tiago_Pereira }}
+              kube_namespace: group8
+              kubeconfig_path: ${KUBECONFIG}
+              manifests_dir: ${{ github.workspace }}/k8s
+              wait_timeout: 1800s
+          EOF
+
+      - name: Show generated inventory
+        run: cat Ansible/inventory/dev.yml
+
+      - name: Run Ansible playbook
+        working-directory: Ansible
+        run: ansible-playbook playbooks/deploy.yml

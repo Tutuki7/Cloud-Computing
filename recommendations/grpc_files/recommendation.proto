@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package recommendations;
+
+message UserPreference {
+  int32 user_id = 1;
+  int32 genre_id = 2;
+  string preference_type = 3;
+}
+
+message ReferenceMovie {
+  int32 user_id = 1;
+  int32 movie_id = 2;
+}
+
+message CreateUserPreferenceRequest {
+  int32 user_id = 1;
+  int32 genre_id = 2;
+  string preference_type = 3;
+}
+
+message UserPreferenceResponse {
+  UserPreference preference = 1;
+}
+
+message GetUserPreferencesRequest {
+  int32 user_id = 1;
+}
+
+message GetUserPreferencesResponse {
+  repeated UserPreference preferences = 1;
+}
+
+message DeleteUserPreferenceRequest {
+  int32 user_id = 1;
+  int32 genre_id = 2;
+}
+
+message DeleteUserPreferenceResponse {
+  bool success = 1;
+}
+
+message AddReferenceMovieRequest {
+  int32 user_id = 1;
+  int32 movie_id = 2;
+}
+
+message ReferenceMovieResponse {
+  ReferenceMovie reference_movie = 1;
+}
+
+message GetReferenceMoviesRequest {
+  int32 user_id = 1;
+}
+
+message GetReferenceMoviesResponse {
+  repeated ReferenceMovie reference_movies = 1;
+}
+
+message DeleteReferenceMovieRequest {
+  int32 user_id = 1;
+  int32 movie_id = 2;
+}
+
+message DeleteReferenceMovieResponse {
+  bool success = 1;
+}
+
+message Recommendation {
+  int32 movie_id = 1;
+  string title = 2;
+}
+
+message GetRecommendationsRequest {
+  int32 user_id = 1;
+}
+
+message GetRecommendationsResponse {
+  repeated Recommendation recommendations = 1;
+}
+
+service RecommendationService {
+  rpc CreateUserPreference (CreateUserPreferenceRequest) returns (UserPreferenceResponse);
+  rpc GetUserPreferences (GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+  rpc DeleteUserPreference (DeleteUserPreferenceRequest) returns (DeleteUserPreferenceResponse);
+
+  rpc AddReferenceMovie (AddReferenceMovieRequest) returns (ReferenceMovieResponse);
+  rpc GetReferenceMovies (GetReferenceMoviesRequest) returns (GetReferenceMoviesResponse);
+  rpc DeleteReferenceMovie (DeleteReferenceMovieRequest) returns (DeleteReferenceMovieResponse);
+
+  rpc GetRecommendations (GetRecommendationsRequest) returns (GetRecommendationsResponse);
+}

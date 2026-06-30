@@ -1,0 +1,17 @@
+- name: Create GCP SA secret for Vertex AI and Pub/Sub
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gcp-sa-secret
+        namespace: "{{ kube_namespace }}"
+      type: Opaque
+      data:
+        sa-key.json: "{{ lookup('file', sa_key_path) | b64encode }}"
+
+- name: Apply ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/00-configmap.yaml"

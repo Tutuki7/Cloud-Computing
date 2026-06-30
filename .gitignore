@@ -1,0 +1,15 @@
+*.csv
+*.env
+*/__pycache__
+.idea
+.vscode
+./db/data
+./venv
+.env
+*/data/
+__pycache__/
+*.pyc
+*.dump
+*/jcarrasqueira
+notes.yaml
+sa-key.json

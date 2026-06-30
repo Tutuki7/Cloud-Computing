@@ -1,0 +1,22 @@
+- name: Deploy Group8 application to GKE
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - preflight
+    - gke_auth
+    - cleanup
+    - namespace
+    - external_secrets
+    - ingress_nginx
+    - cert_manager
+    - eso_sa
+    - secret_sync
+    - app_config
+    - postegres
+    - db_seed
+    - keycloak
+    - services
+    - security
+    - monitoring
+    - ingress
+    - verify

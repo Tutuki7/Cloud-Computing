@@ -1,0 +1,30 @@
+- name: Wait for NGINX Ingress external IP
+  ansible.builtin.command: >-
+    kubectl get svc ingress-nginx-controller
+    -n {{ ingress_namespace }}
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: nginx_ip
+  retries: 24
+  delay: 5
+  until: nginx_ip.stdout | length > 0
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Set ingress host
+  ansible.builtin.set_fact:
+    ingress_host: "{{ nginx_ip.stdout }}.nip.io"
+  when: not ansible_check_mode
+
+- name: Render ingress template
+  ansible.builtin.template:
+    src: 19-ingress.yaml
+    dest: /tmp/19-ingress.yaml
+  when: not ansible_check_mode
+
+- name: Apply ingress
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/19-ingress.yaml
+  when: not ansible_check_mode

@@ -1,0 +1,25 @@
+- name: Apply SecretStore
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: external-secrets.io/v1
+      kind: SecretStore
+      metadata:
+        name: group8-secret-store
+        namespace: "{{ kube_namespace }}"
+      spec:
+        provider:
+          gcpsm:
+            projectId: "{{ gcp_project }}"
+            auth:
+              workloadIdentity:
+                clusterLocation: "{{ gcp_zone }}"
+                clusterName: "{{ gke_cluster_name }}"
+                clusterProjectId: "{{ gcp_project }}"
+                serviceAccountRef:
+                  name: eso-sa
+
+- name: Apply ExternalSecret
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/01-external-secret.yaml"

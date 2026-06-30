@@ -1,0 +1,56 @@
+name: Terraform Destroy
+
+on:
+  push:
+    branches: [tpereira]
+  pull_request:
+    branches: [tpereira]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Show GitHub ref info
+        run: |
+          echo "github.ref_name=${{ github.ref_name }}"
+          echo "github.head_ref=${{ github.head_ref }}"
+          echo "github.sha=${{ github.sha }}"
+          pwd
+          ls -la
+          ls -la Terraform || true
+          find . -maxdepth 3 \( -name "*.tf" -o -name "*.tfvars" \) | sort
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_Tiago_Pereira }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT_Tiago_Pereira }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform destroy
+        run: terraform destroy -auto-approve -input=false
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID_Tiago_Pereira }}
+          TF_VAR_region: ${{ secrets.GCP_REGION_Tiago_Pereira }}
+          TF_VAR_zone: ${{ secrets.GCP_ZONE_Tiago_Pereira }}

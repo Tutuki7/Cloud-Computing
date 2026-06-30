@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8001"
+      labels:
+        app: users-service
+    spec:
+      containers:
+        - name: users-service
+          image: tpina17/users-service:v18
+          imagePullPolicy: Always
+          ports:
+            - name: rest
+              containerPort: 8001
+            - name: grpc
+              containerPort: 50053
+          env:
+            - name: DB_HOST
+              value: postgres-users
+            - name: DB_NAME
+              value: users_db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_PASSWORD
+            - name: KEYCLOAK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: group8-config
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: group8-config
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: group8-config
+                  key: KEYCLOAK_CLIENT_ID
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: KEYCLOAK_CLIENT_SECRET
+            - name: REST_PORT
+              value: "8001"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+  namespace: default
+spec:
+  selector:
+    app: users-service
+  ports:
+    - name: rest
+      port: 8001
+      targetPort: 8001
+    - name: grpc
+      port: 50053
+      targetPort: 50053
+  type: ClusterIP

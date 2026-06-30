@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: group8-config
+  namespace: default
+data:
+  ADMIN_USERNAME: "admin"
+  ADMIN_EMAIL: "admin@cc2526.com"
+
+  KEYCLOAK_URL: "http://keycloak:8080"
+  KEYCLOAK_REALM: "cc2526"
+  KEYCLOAK_CLIENT_ID: "users-service"
+
+  USER_GRPC_URL: "users-service:50053"
+  MOVIE_GRPC_URL: "movies-service:50054"
+
+  REVIEW_REST_PORT: "8003"
+  REVIEW_GRPC_PORT: "50055"
+  REVIEW_GRPC_URL: "review-service:50055"
+
+  RECOMMENDATIONS_REST_PORT: "8004"
+  RECOMMENDATIONS_GRPC_PORT: "50056"
+  RECOMMENDATIONS_REST_URL: "http://recommendations-service:8004"
+  RECOMMENDATIONS_GRPC_URL: "recommendations-service:50056"
+
+  SUBSCRIPTIONS_REST_PORT: "8005"
+  SUBSCRIPTIONS_GRPC_PORT: "50057"
+
+  BADGE_REST_PORT: "8006"
+  BADGE_GRPC_PORT: "50058"
+  BADGE_GRPC_URL: "badges-service:50058"
+
+  WATCHLIST_REST_PORT: "8007"
+  WATCHLIST_GRPC_PORT: "50059"
+  WATCHLIST_GRPC_URL: "watchlists-service:50059"
+
+  PROJECT_ID: "cnprojeto-499609"
+  REGION: "europe-west1"
+  PUBSUB_TOPIC: "review-created"
+  PUBSUB_SUBSCRIPTION: "review-worker-sub"

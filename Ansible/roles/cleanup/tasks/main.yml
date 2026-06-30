@@ -1,0 +1,62 @@
+- name: Delete all resources in default namespace
+  ansible.builtin.command: kubectl delete all --all --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete all PVCs in default namespace
+  ansible.builtin.command: kubectl delete pvc --all --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete all ExternalSecrets
+  ansible.builtin.command: kubectl delete externalsecret --all --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete all SecretStores
+  ansible.builtin.command: kubectl delete secretstore --all --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete group8 secret
+  ansible.builtin.command: kubectl delete secret group8-secret --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete all NetworkPolicies
+  ansible.builtin.command: kubectl delete networkpolicy --all --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete Keycloak resources
+  ansible.builtin.command: kubectl delete statefulset keycloak --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete Keycloak PVC
+  ansible.builtin.command: kubectl delete pvc keycloak-data-keycloak-0 --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false
+
+- name: Delete Keycloak jobs
+  ansible.builtin.command: kubectl delete job keycloak-setup admin-db-init --ignore-not-found -n {{ kube_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+  failed_when: false

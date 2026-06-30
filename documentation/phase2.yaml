@@ -1,0 +1,1518 @@
+openapi: 3.1.0
+info:
+  title: "CC2526 Group8 API"
+  description: A platform offering a unified movie catalog, public review system, personal watchlists, and personalized recommendations.
+  version: "1.0.0"
+
+servers:
+  - url: /api
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+
+    UserDetails:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        gender:
+          type: string
+          enum: [M, F, NB, O]
+        age:
+          type: integer
+
+    UserRegistration:
+      type: object
+      required: 
+        - email
+        - password
+        - username
+        - termsAccepted
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 10
+          pattern: "^(?=.*\\d).{10,}$"
+        username:
+          type: string
+        gender:
+          type: string
+          enum: [M, F, NB, O]
+        age:
+          type: integer
+        termsAccepted:
+          type: boolean
+          
+    Movie:
+      type: object
+      title: Movie
+      required:
+        - movie_id
+        - movie_title
+        - release_year
+      properties:
+        movie_id:
+          type: string
+          title: Movie ID
+        movie_title:
+          type: string
+          title: Movie Title
+          examples:
+            - "Inception"
+        genres:
+          type: array
+          title: Genres
+          items:
+            type: string
+          examples: ["Action", "Sci-Fi", "Thriller"]
+        description:
+          type: string
+          title: Description
+          examples:
+            - "A thief who steals corporate secrets through dream-sharing technology."
+        imdb_url:
+          type: string
+          format: uri
+          title: IMDB URL
+          examples: ["https://www.imdb.com/title/tt1375666/"]
+        release_year:
+          type: integer
+          minimum: 1888
+          title: Release Year
+        tags:
+          type: array
+          title: Tags
+          items:
+            type: string
+          examples: ["mind-bending", "dreams", "heist"]
+
+    MovieCreate:
+      type: object
+      title: MovieCreate
+      required:
+        - movie_title
+        - release_year
+      properties:
+        movie_title:
+          type: string
+          title: Movie Title
+          examples: ["Inception"]
+        genres:
+          type: array
+          title: Genres
+          items:
+            type: string
+          examples: ["Action", "Sci-Fi", "Thriller"]
+        description:
+          type: string
+          title: Description
+          examples:
+            - "A thief who steals corporate secrets through dream-sharing technology."
+        imdb_url:
+          type: string
+          format: uri
+          title: IMDB URL
+          examples: ["https://www.imdb.com/title/tt1375666/"]
+        release_year:
+          type: integer
+          minimum: 1888
+          title: Release Year
+        tags:
+          type: array
+          title: Tags
+          items:
+            type: string
+          examples: ["mind-bending", "dreams", "heist"]
+
+    MovieUpdate:
+      type: object
+      title: MovieUpdate
+      description: All fields are optional. Only provided fields will be updated.
+      properties:
+        movie_title:
+          type: string
+          title: Movie Title
+        genres:
+          type: array
+          title: Genres
+          items:
+            type: string
+          examples: ["Action", "Sci-Fi", "Thriller"]
+        description:
+          type: string
+          title: Description
+          examples:
+            - "A thief who steals corporate secrets through dream-sharing technology."
+        imdb_url:
+          type: string
+          format: uri
+          title: IMDB URL
+        release_year:
+          type: integer
+          minimum: 1888
+          title: Release Year
+        tags:
+          type: array
+          title: Tags
+          items:
+            type: string
+          examples: ["mind-bending", "dreams", "heist"]
+
+    HTTPValidationError:
+      type: object
+      title: HTTPValidationError
+      properties:
+        detail:
+          type: array
+          title: Detail
+          items:
+            $ref: "#/components/schemas/ValidationError"
+
+    ValidationError:
+      type: object
+      title: ValidationError
+      required:
+        - loc
+        - msg
+        - type
+      properties:
+        loc:
+          type: array
+          title: Location
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+          
+    Rating:
+      type: object
+      required: 
+        - rating_id
+        - rating
+        - user_id
+        - movie_id
+      properties:
+        rating_id:
+          type: integer
+        user_id:
+          type: string
+        movie_id:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        tag:
+          type: string
+
+    RatingCreate:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+        tag:
+          type: string
+
+    UpdateRating:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+        tag:
+          type: string
+    Badge:
+      type: object
+      required:
+        - badge_id
+        - title
+      properties:
+        badge_id:
+          type: integer
+        title:
+          type: string
+        milestone:
+          type: integer
+        description:
+          type: string
+
+    BadgeCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        milestone:
+          type: integer
+        description:
+          type: string
+
+    BadgeUpdate:
+      type: object
+      description: All fields optional. Only provided fields will be updated.
+      properties:
+        title:
+          type: string
+        milestone:
+          type: integer
+        description:
+          type: string
+
+    UserBadge:
+      type: object
+      required:
+        - user_id
+        - badge
+        - awarded_at
+      properties:
+        user_id:
+          type: integer
+        badge:
+          $ref: "#/components/schemas/Badge"
+        milestone:
+          type: integer
+        awarded_at:
+          type: string
+          format: date-time
+
+    Watchlist:
+      type: object
+      properties:
+        watchlist_id:
+          type: integer
+        user_id:
+          type: string
+        title:
+          type: string
+          examples: [My Favourites]
+        created_at:
+          type: string
+          format: date-time
+
+    WatchlistCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          examples: [My Favourites]
+
+    WatchlistUpdate:
+      type: object
+      description: All fields are optional. Only provided fields will be updated.
+      properties:
+        title:
+          type: string
+          examples: [Updated Title]
+
+    Subscription:
+      type: object
+      properties:
+        subscription_id:
+          type: integer
+        user_id:
+          type: string
+        type:
+          type: string
+          enum: [free, basic, premium]
+          examples: [premium]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    SubscriptionCreate:
+      type: object
+      required:
+        - user_id
+        - type
+        - start_date
+        - end_date
+      properties:
+        user_id:
+          type: string
+        type:
+          type: string
+          enum: [free, basic, premium]
+          examples: [premium]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    SubscriptionUpdate:
+      type: object
+      description: All fields are optional. Only provided fields will be updated.
+      properties:
+        type:
+          type: string
+          enum: [free, basic, premium]
+        end_date:
+          type: string
+          format: date
+
+  parameters:
+    user_id:
+      name: user_id
+      in: path
+      required: true
+      description: Unique identifier of the user
+      schema:
+        type: string
+
+    movie_id:
+      name: movie_id
+      in: path
+      required: true
+      description: Unique identifier of the movie
+      schema:
+        type: string
+  
+    genre:
+      name: genre
+      in: query
+      required: false
+      description: Filter by genre
+      schema:
+        type: string
+
+    release_year:
+      name: release_year
+      in: query
+      required: false
+      description: Filter by release year
+      schema:
+        type: integer
+        minimum: 1888
+    
+    tag:
+      name: tag
+      in: query
+      required: false
+      description: Filter by a specific tag
+      schema:
+        type: integer
+    
+    rating_id:
+      name: rating_id
+      in: path
+      required: true
+      description: Unique identifier of the rating
+      schema:
+        type: integer
+
+    username:
+      name: username
+      in: query
+      required: false
+      description: Filter by username
+      schema:
+        type: string
+
+    movie_filter:
+      name: movie
+      in: query
+      required: false
+      description: Filter by movie name
+      schema:
+        type: string
+
+    rating:
+      name: rating
+      in: query
+      required: false
+      description: Filter by rating
+      schema:
+        type: integer
+    
+    badge_id:
+      name: badge_id
+      in: path
+      required: true
+      description: Unique identifier of the badge
+      schema:
+        type: integer
+    
+    watchlist_id:
+      name: watchlist_id
+      in: path
+      required: true
+      description: Unique identifier of the watchlist
+      schema:
+        type: integer
+    subscription_id:
+      name: subscription_id
+      in: path
+      required: true
+      description: Unique identifier of the subscription
+      schema:
+        type: integer
+
+paths:
+  /users:
+    get:
+      summary: Retrieve all users
+      tags: 
+        - "User Registration"
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+    post:
+      summary: Register a new user
+      tags: 
+        - "User Registration"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegistration"
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Invalid input
+
+  /users/{user_id}:
+    get:
+      summary: Retrieve user details
+      tags: 
+        - "User Registration"
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '200':
+          description: User details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetails"
+
+    put:
+      summary: Update user details
+      tags: 
+        - "User Registration"
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDetails"
+      responses:
+        '200':
+          description: User updated successfully
+
+    delete:
+      summary: Delete a user
+      tags: 
+        - "User Registration"
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '204':
+          description: User deleted successfully
+
+  /auth:
+    post:
+      summary: Authenticate user
+      tags: 
+        - "User Authentication"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      summary: Logout user (invalidate token)
+      tags:
+        - "User Authentication"
+      responses:
+        '200':
+          description: Token invalidated
+
+  /auth/verify:
+    get:
+      summary: Verify token validity
+      tags: 
+        - "User Authentication"
+      responses:
+        '200':
+          description: Token is valid
+        '401':
+          description: Invalid or expired token
+
+  /movies:
+    get:
+      summary: List movies
+      description: Retrieve all movies, with optional filters by genre, release year, or tag.
+      operationId: get_movies
+      tags:
+        - "Movies"
+      parameters:
+        - $ref: "#/components/parameters/genre"
+        - $ref: "#/components/parameters/release_year"
+        - $ref: "#/components/parameters/tag"
+      responses:
+        "200":
+          description: Movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Movie"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+    post:
+      summary: Create movie
+      description: Add a new movie.
+      operationId: create_movie_post
+      tags:
+        - "Movies"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieCreate"
+      responses:
+        "201":
+          description: Movie created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movie"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+
+  /movies/{movie_id}:
+    get:
+      summary: Get movie
+      description: Retrieve a single movie by its unique ID.
+      operationId: get_movie
+      tags:
+        - "Movies"
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        "200":
+          description: Movie retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movie"
+        "404":
+          description: Movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+
+    put:
+      summary: Update movie
+      description: Update one or more fields of an existing movie.
+      operationId: update_movie
+      tags:
+        - "Movies"
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieUpdate"
+      responses:
+        "200":
+          description: Movie updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movie"
+        "404":
+          description: Movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+
+    delete:
+      summary: Delete movie
+      description: Permanently remove a movie from the database.
+      operationId: delete_movie
+      tags:
+        - "Movies"
+      parameters:
+        - $ref: "#/components/parameters/movie_id" 
+      responses:
+        "204":
+          description: Movie deleted successfully
+        "404":
+          description: Movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /ratings:
+    get:
+      summary: Retrieve all ratings
+      description: Returns all ratings in the system. Supports optional filtering by
+        username, movie title, rating value, genre, release year, or tag.
+      operationId: get_ratings
+      tags:
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/username"
+        - $ref: "#/components/parameters/movie_filter"
+        - $ref: "#/components/parameters/rating"
+        - $ref: "#/components/parameters/genre"
+        - $ref: '#/components/parameters/release_year'
+        - $ref: "#/components/parameters/tag"
+      responses:
+        '200':
+          description: Ratings retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /ratings/{rating_id}:
+    get:
+      summary: Retrieve rating by ID
+      description: Returns a single rating using its unique identifier.
+      operationId: get_rating
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      responses:
+        '200':
+          description: Rating retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        '400':
+          description: Invalid rating_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Rating not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update a rating
+      description: Updates one or more fields of an existing rating.
+      operationId: put_rating
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRating"
+      responses:
+        '200':
+          description: Rating updated
+        '400':
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Rating not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete a rating
+      description: Permanently removes a rating from the system.
+      operationId: delete_rating
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      responses:
+        '204':
+          description: Rating deleted
+        '400':
+          description: Invalid rating_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Rating not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /movies/{movie_id}/ratings:
+    get:
+      summary: Retrieve ratings for a movie
+      description: Returns all ratings associated with a specific movie. Supports optional filtering by rating value, release year, or tag.
+      operationId: get_movie_rating
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+        - $ref: "#/components/parameters/rating"
+        - $ref: "#/components/parameters/release_year"
+        - $ref: "#/components/parameters/tag"
+      responses:
+        '200':
+          description: Movie ratings retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+
+    post:
+      summary: Create a rating for a movie
+      description: Creates a new rating for the specified movie.
+      operationId: post_rating
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingCreate"
+      responses:
+        '201':
+          description: Rating created
+
+  /users/{user_id}/ratings:
+    get:
+      summary: Retrieve ratings by a user
+      description: Returns all ratings submitted by a specific user. Supports optional
+        filtering by rating value, release year, genre, or tag.
+      operationId: get_user_ratings
+      tags: 
+        - "Review System"
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - $ref: "#/components/parameters/rating"
+        - $ref: "#/components/parameters/release_year"
+        - $ref: "#/components/parameters/genre"
+        - $ref: "#/components/parameters/tag"
+      responses:
+        '200':
+          description: User ratings retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+
+  /badges:
+    get:
+      summary: List badges
+      operationId: get_badges
+      description: Retrieve all badge definitions.
+      tags:
+        - Badges
+      responses:
+        '200':
+          description: Badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Badge'
+        '500':
+          description: Internal server error
+    post:
+      summary: Create badge
+      operationId: create_badge
+      description: Create a new badge definition.
+      tags:
+        - Badges
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadgeCreate'
+      responses:
+        '201':
+          description: Badge created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Badge'
+        '400':
+          description: Invalid badge data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Badge with same title already exists
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+
+  /badges/{badge_id}:
+    get:
+      summary: Get badge
+      operationId: get_badge
+      description: Retrieve a single badge definition by its unique ID.
+      tags:
+        - Badges
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      responses:
+        '200':
+          description: Badge retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Badge'
+        '400':
+          description: Invalid badge_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Badge not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+    put:
+      summary: Update badge
+      operationId: update_badge
+      description: Update one or more fields of an existing badge.
+      tags:
+        - Badges
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadgeUpdate'
+      responses:
+        '200':
+          description: Badge updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Badge'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Badge not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+    delete:
+      summary: Delete badge
+      operationId: delete_badge
+      description: Permanently remove a badge definition.
+      tags:
+        - Badges
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      responses:
+        '204':
+          description: Badge deleted successfully
+        '400':
+          description: Invalid badge_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Badge not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+  
+  /users/{user_id}/badges:
+    get:
+      summary: List user badges
+      operationId: get_user_badges
+      description: Retrieve all badges awarded to a given user.
+      tags:
+        - Badges
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '200':
+          description: User badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserBadge'
+        '400':
+          description: Invalid user_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: User not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+    post:
+      summary: Award badge to user
+      operationId: award_user_badge
+      description: Award an existing badge definition to a user.
+      tags:
+        - Badges
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - badge_id
+              properties:
+                badge_id:
+                  type: integer
+                  description: Identifier of the badge to award
+      responses:
+        '201':
+          description: Badge awarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBadge'
+        '400':
+          description: Invalid user_id or badge_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Unauthorized
+        '404':
+          description: User or badge not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '500':
+          description: Internal server error
+
+  /watchlists:
+    get:
+      summary: List watchlists
+      operationId: get_watchlists
+      description: Retrieve all watchlists.
+      tags:
+        - Watchlist
+      responses:
+        '200':
+          description: Watchlists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Watchlist"
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Create watchlist
+      operationId: create_watchlist
+      description: Create a new watchlist.
+      tags:
+        - Watchlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchlistCreate"
+      responses:
+        '201':
+          description: Watchlist created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Watchlist"
+        '400':
+          description: Invalid watchlist data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /watchlists/{watchlist_id}:
+    get:
+      summary: Get watchlist
+      operationId: get_watchlist
+      description: Retrieve a single watchlist by its unique ID.
+      tags:
+        - Watchlist
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      responses:
+        '200':
+          description: Watchlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Watchlist"
+        '400':
+          description: Invalid watchlist_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Watchlist not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update watchlist
+      operationId: update_watchlist
+      description: Update one or more fields of an existing watchlist.
+      tags:
+        - Watchlist
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchlistUpdate"
+      responses:
+        '200':
+          description: Watchlist updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Watchlist"
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Watchlist not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete watchlist
+      operationId: delete_watchlist
+      description: Permanently remove a watchlist.
+      tags:
+        - Watchlist
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      responses:
+        '204':
+          description: Watchlist deleted successfully
+        '400':
+          description: Invalid watchlist_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Watchlist not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /users/{user_id}/watchlist:
+    get:
+      summary: List user watchlists
+      operationId: get_user_watchlists
+      description: Retrieve all watchlists belonging to a given user.
+      tags:
+        - Watchlist
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '200':
+          description: User watchlists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Watchlist"
+        '400':
+          description: Invalid user_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: User not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /subscriptions:
+    get:
+      summary: List subscriptions
+      operationId: get_subscriptions
+      description: Retrieve all subscriptions.
+      tags:
+        - Subscription
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Create subscription
+      operationId: create_subscription
+      description: Create a new subscription.
+      tags:
+        - Subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionCreate"
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        '400':
+          description: Invalid subscription data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /subscriptions/{subscription_id}:
+    get:
+      summary: Get subscription
+      operationId: get_subscription
+      description: Retrieve a single subscription by its unique ID.
+      tags:
+        - Subscription
+      parameters:
+        - $ref: "#/components/parameters/subscription_id"
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        '400':
+          description: Invalid subscription_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Subscription not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update subscription
+      operationId: update_subscription
+      description: Update one or more fields of an existing subscription.
+      tags:
+        - Subscription
+      parameters:
+        - $ref: "#/components/parameters/subscription_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionUpdate"
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '404':
+          description: Subscription not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete subscription
+      operationId: delete_subscription
+      description: Cancel a subscription. Requires confirmation.
+      tags:
+        - Subscription
+      parameters:
+        - $ref: "#/components/parameters/subscription_id"
+        - name: confirm
+          in: query
+          required: true
+          description: Must be true to confirm cancellation
+          schema:
+            type: boolean
+      responses:
+        '204':
+          description: Subscription cancelled successfully
+        '400':
+          description: Confirmation required to cancel subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '401':
+          description: Unauthorized
+        '404':
+          description: Subscription not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error

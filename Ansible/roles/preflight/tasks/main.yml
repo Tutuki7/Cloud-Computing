@@ -1,0 +1,22 @@
+- name: Check manifests directory exists
+  ansible.builtin.stat:
+    path: "{{ manifests_dir }}"
+  register: manifests_dir_stat
+
+- name: Fail if manifests directory is missing
+  ansible.builtin.assert:
+    that:
+      - manifests_dir_stat.stat.exists
+      - manifests_dir_stat.stat.isdir
+    fail_msg: "manifests_dir does not exist: {{ manifests_dir }}"
+
+- name: Check sa-key.json exists
+  ansible.builtin.stat:
+    path: "{{ sa_key_path }}"
+  register: sa_key_stat
+
+- name: Fail if sa-key.json is missing
+  ansible.builtin.assert:
+    that:
+      - sa_key_stat.stat.exists
+    fail_msg: "Missing sa-key.json at {{ sa_key_path }}"

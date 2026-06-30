@@ -1,0 +1,417 @@
+# Default deny — block all ingress and egress traffic in the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow DNS resolution for all pods (required for service discovery)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# postgres: accept connections from all microservices
+# Uses matchExpressions to cover all postgres-* pods (postgres-users, postgres-movies, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-ingress
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - postgres-users
+          - postgres-movies
+          - postgres-ratings
+          - postgres-recommendations
+          - postgres-subscriptions
+          - postgres-badges
+          - postgres-watchlists
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: users-service
+        - podSelector:
+            matchLabels:
+              app: movies-service
+        - podSelector:
+            matchLabels:
+              app: review-service
+        - podSelector:
+            matchLabels:
+              app: recommendations-service
+        - podSelector:
+            matchLabels:
+              app: subscriptions-service
+        - podSelector:
+            matchLabels:
+              app: badges-service
+        - podSelector:
+            matchLabels:
+              app: watchlists-service
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-users
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-movies
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-ratings
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-recommendations
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-subscriptions
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-badges
+        - podSelector:
+            matchLabels:
+              app: postgres-exporter-watchlists
+      ports:
+        - port: 5432
+---
+# All microservices: allow egress to postgres (any postgres-* pod) and keycloak
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-microservices-egress
+  namespace: default
+spec:
+  podSelector:
+    matchLabels: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - postgres-users
+                  - postgres-movies
+                  - postgres-ratings
+                  - postgres-recommendations
+                  - postgres-subscriptions
+                  - postgres-badges
+                  - postgres-watchlists
+      ports:
+        - port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: keycloak
+      ports:
+        - port: 8080
+    # Allow egress to external GCP APIs (Pub/Sub, Vertex AI, Secret Manager, etc.)
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+---
+# All microservices: allow gRPC communication between services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-grpc-between-services
+  namespace: default
+spec:
+  podSelector:
+    matchLabels: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 50053
+        - port: 50054
+        - port: 50055
+        - port: 50056
+        - port: 50057
+        - port: 50058
+        - port: 50059
+  egress:
+    - to:
+        - podSelector: {}
+      ports:
+        - port: 50053
+        - port: 50054
+        - port: 50055
+        - port: 50056
+        - port: 50057
+        - port: 50058
+        - port: 50059
+---
+# users-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-users-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: users-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8001
+---
+# movies-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-movies-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: movies-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8002
+---
+# review-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-review-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: review-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8003
+---
+# recommendations-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-recommendations-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: recommendations-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8004
+---
+# subscriptions-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-subscriptions-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: subscriptions-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8005
+---
+# badges-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-badges-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: badges-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8006
+---
+# watchlists-service: accept REST traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-watchlists-service-rest
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: watchlists-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8007
+---
+# Allow NGINX Ingress Controller to reach all services in default namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-nginx-ingress-controller
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+---
+# Allow cert-manager ACME HTTP-01 challenge solver (port 8089)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8089
+---
+# keycloak: accept connections from all microservices and keycloak-setup job
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-keycloak-ingress
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8080
+---
+# Allow Prometheus (monitoring namespace) to scrape metrics from all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 9187  # postgres-exporter
+        - port: 8001  # users-service
+        - port: 8002  # movies-service
+        - port: 8003  # review-service
+        - port: 8004  # recommendations-service
+        - port: 8005  # subscriptions-service
+        - port: 8006  # badges-service
+        - port: 8007  # watchlists-service
+---
+# Allow postgres exporters to respond to Prometheus scrape requests
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+---
+# Allow postgres exporters to reach their respective postgres pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-exporter-egress
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - postgres-exporter-users
+          - postgres-exporter-movies
+          - postgres-exporter-ratings
+          - postgres-exporter-recommendations
+          - postgres-exporter-subscriptions
+          - postgres-exporter-badges
+          - postgres-exporter-watchlists
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+      ports:
+        - port: 5432
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

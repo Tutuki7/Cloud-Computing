@@ -1,0 +1,2578 @@
+openapi: 3.1.0
+info:
+  title: "Group8 API"
+  description: |
+    A platform offering a unified movie catalog, public review system, personal watchlists, and personalized recommendations. 
+  version: "2.0.0"
+
+servers:
+  - url: https://{NGINX-IP}.nip.io
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Movies
+  - name: Cast
+  - name: Genres
+  - name: Badges
+  - name: Watchlists
+  - name: Subscriptions
+  - name: Reviews
+  - name: Recommendations
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Obtain a token via `POST /login` (users-service) or directly from Keycloak.
+        Paste the `access_token` value here.
+  schemas:
+    HTTPValidationError:
+      type: object
+      title: HTTPValidationError
+      properties:
+        detail:
+          type: array
+          title: Detail
+          items:
+            $ref: "#/components/schemas/ValidationError"
+
+    ValidationError:
+      type: object
+      title: ValidationError
+      required:
+        - loc
+        - msg
+        - type
+      properties:
+        loc:
+          type: array
+          title: Location
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+    
+    # Auth  ---------------------------------------------------------------------
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          examples: [admin]
+        password:
+          type: string
+          format: password
+          examples: [AdminPassword123!@%]
+
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: Keycloak JWT — use as Bearer token
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          examples: [bearer]
+        expires_in:
+          type: integer
+          description: Token lifetime in seconds
+          examples: [900]
+
+    # Users ---------------------------------------------------------------
+    UserRegister:
+      type: object
+      required:
+        - username
+        - email
+        - password
+        - firstName
+        - lastName
+        - termsAccepted
+      properties:
+        username:
+          type: string
+          description: Unique username
+          examples: [johndoe]
+        email:
+          type: string
+          format: email
+          examples: [johndoe@example.com]
+        password:
+          type: string
+          format: password
+          description: >
+            Minimum 15 characters. Must contain at least one uppercase letter,
+            one digit and one special character.
+        firstName:
+          type: string
+          examples: [John]
+        lastName:
+          type: string
+          examples: [Doe]
+        gender:
+          type: string
+          description: "One of: M (Male), F (Female), NB (Non-binary), O (Other)"
+          enum: [M, F, NB, O]
+        age:
+          type: integer
+          description: Age in years (optional)
+          examples: [30]
+        termsAccepted:
+          type: boolean
+          description: Must be true to complete registration
+
+    UserUpdate:
+      type: object
+      description: All fields optional. Only provided fields will be updated.
+      properties:
+        username:
+          type: string
+          description: New unique username
+        gender:
+          type: string
+          enum: [M, F, NB, O]
+        age:
+          type: integer
+
+    UserResponse:
+      type: object
+      required:
+        - user_id
+        - username
+        - email
+        - is_admin
+        - created_at
+        - updated_at
+      properties:
+        user_id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        gender:
+          type: string
+        age:
+          type: integer
+        is_admin:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    # Movies ------------------------------------------------------------------------
+    CastMemberCreate:
+      type: object
+      required:
+        - cast_name
+      properties:
+        cast_name:
+          type: string
+          description: Name of the cast member
+          examples: [Tom Hanks]
+        role:
+          type: string
+          description: Role in the movie
+          examples: [Forrest Gump]
+
+    CastMemberResponse:
+      type: object
+      required:
+        - cast_id
+        - cast_name
+      properties:
+        cast_id:
+          type: integer
+        cast_name:
+          type: string
+        role:
+          type: string
+          nullable: true
+
+    MovieCreate:
+      type: object
+      required:
+        - movie_title
+        - release_year
+      properties:
+        movie_title:
+          type: string
+          examples: [Forrest Gump]
+        description:
+          type: string
+          description: Movie synopsis
+        imdb_url:
+          type: string
+          format: uri
+          examples: [https://www.imdb.com/title/tt0109830/]
+        release_year:
+          type: integer
+          description: Must be >= 1874
+          examples: [1994]
+        runtime:
+          type: integer
+          description: Runtime in minutes
+          examples: [142]
+        parental_rating:
+          type: string
+          examples: [PG-13]
+        poster_url:
+          type: string
+          format: uri
+        genres:
+          type: array
+          description: List of existing genre names to associate
+          items:
+            type: string
+          examples:
+            - [Drama, Romance]
+
+    MovieUpdate:
+      type: object
+      description: All fields optional. Only provided fields will be updated. If `genres` is provided it replaces the entire genre list.
+      properties:
+        movie_title:
+          type: string
+        description:
+          type: string
+        imdb_url:
+          type: string
+          format: uri
+        release_year:
+          type: integer
+        runtime:
+          type: integer
+        parental_rating:
+          type: string
+        poster_url:
+          type: string
+          format: uri
+        genres:
+          type: array
+          items:
+            type: string
+
+    MovieResponse:
+      type: object
+      required:
+        - movie_id
+        - movie_title
+        - release_year
+        - is_deleted
+      properties:
+        movie_id:
+          type: integer
+        movie_title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        imdb_url:
+          type: string
+          nullable: true
+        release_year:
+          type: integer
+        runtime:
+          type: integer
+          nullable: true
+        parental_rating:
+          type: string
+          nullable: true
+        poster_url:
+          type: string
+          nullable: true
+        avg_rating:
+          type: number
+          format: float
+          nullable: true
+          description: Average user rating (populated from ratings service data)
+        genres:
+          type: array
+          items:
+            type: string
+          default: []
+        cast:
+          type: array
+          items:
+            $ref: "#/components/schemas/CastMemberResponse"
+          default: []
+        is_deleted:
+          type: boolean
+          default: false
+
+    GenreResponse:
+      type: object
+      required:
+        - genre_id
+        - name
+      properties:
+        genre_id:
+          type: integer
+        name:
+          type: string
+          examples: [Drama]
+  
+ # Badges -----------------------------------------------------------------
+    BadgeCreate:
+      type: object
+      required: [title, milestone]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          examples: [First Review]
+        milestone:
+          type: integer
+          minimum: 1
+          examples: [10]
+        description:
+          anyOf:
+            - type: string
+            - type: "null"
+          examples: [Awarded after 10 reviews]
+    BadgeUpdate:
+      type: object
+      properties:
+        title:
+          anyOf:
+            - type: string
+              minLength: 1
+            - type: "null"
+        milestone:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: "null"
+        description:
+          anyOf:
+            - type: string
+            - type: "null"
+    BadgeOut:
+      type: object
+      required: [badge_id, title, milestone]
+      properties:
+        badge_id:
+          type: integer
+        title:
+          type: string
+        milestone:
+          type: integer
+        description:
+          anyOf:
+            - type: string
+            - type: "null"
+    AwardBadgeBody:
+      type: object
+      required: [badge_id]
+      properties:
+        badge_id:
+          type: integer
+          minimum: 1
+          description: ID of the badge to award
+    UserBadgeOut:
+      type: object
+      required: [badge_id, user_id, badge]
+      properties:
+        badge_id:
+          type: integer
+        user_id:
+          type: string
+        awarded_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        badge:
+          $ref: "#/components/schemas/BadgeOut"
+ 
+    # Subscriptions ----------------------------------------------------------
+    CreateSubscription:
+      type: object
+      required: [type, status]
+      properties:
+        type:
+          type: string
+          enum: [free, premium]
+        status:
+          type: string
+          enum: [active, pending, cancelled, expired]
+        start_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        end_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+    UpdateSubscription:
+      type: object
+      properties:
+        type:
+          anyOf:
+            - type: string
+              enum: [free, premium]
+            - type: "null"
+        status:
+          anyOf:
+            - type: string
+              enum: [active, pending, cancelled, expired]
+            - type: "null"
+        start_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        end_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+    Subscription:
+      type: object
+      required: [subscription_id, user_id, type, status]
+      properties:
+        subscription_id:
+          type: integer
+        user_id:
+          type: integer
+        type:
+          type: string
+        status:
+          type: string
+        start_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        end_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+ 
+    # Reviews / Ratings ------------------------------------------------------
+    RatingCreate:
+      type: object
+      required: [user_id, movie_id, rating]
+      properties:
+        user_id:
+          type: integer
+          description: ID of the user submitting the rating
+        movie_id:
+          type: integer
+          description: ID of the movie being rated
+        rating:
+          type: number
+          minimum: 0
+          maximum: 5
+          description: Rating value between 1 and 5
+        review:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Optional text review
+        tag:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Optional tag
+    MovieRating:
+      type: object
+      required: [user_id, rating]
+      properties:
+        user_id:
+          type: integer
+          description: ID of the user submitting the rating
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        review:
+          anyOf:
+            - type: string
+            - type: "null"
+        tag:
+          anyOf:
+            - type: string
+            - type: "null"
+    UpdateRating:
+      type: object
+      properties:
+        rating:
+          anyOf:
+            - type: number
+              minimum: 0
+              maximum: 5
+            - type: "null"
+          description: Updated rating value
+        review:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Updated text review
+        tag:
+          anyOf:
+            - type: string
+            - type: "null"
+    Rating:
+      type: object
+      required: [rating_id, user_id, movie_id, rating]
+      properties:
+        rating_id:
+          type: integer
+        user_id:
+          type: integer
+        movie_id:
+          type: integer
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        review:
+          anyOf:
+            - type: string
+            - type: "null"
+        tag:
+          anyOf:
+            - type: string
+            - type: "null"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+ 
+    # Recommendations --------------------------------------------------------
+    CreateUserPreference:
+      type: object
+      required: [genre_id]
+      properties:
+        genre_id:
+          type: integer
+          description: ID of the genre
+        preference_type:
+          type: string
+          description: "Type of preference: 'like', 'dislike', or 'neutral'"
+          default: like
+    UserPreference:
+      type: object
+      required: [user_id, genre_id]
+      properties:
+        user_id:
+          type: integer
+        genre_id:
+          type: integer
+        preference_type:
+          type: string
+          default: like
+    ReferenceMovie:
+      type: object
+      required: [movie_id, user_id]
+      properties:
+        movie_id:
+          type: integer
+        user_id:
+          type: integer
+    Recommendation:
+      type: object
+      required: [movie_id, title]
+      properties:
+        movie_id:
+          type: integer
+          description: ID of the recommended movie
+        title:
+          type: string
+          description: Title of the recommended movie
+    ExplainedRecommendation:
+      type: object
+      required: [movie_id, title, explaination]
+      properties:
+        movie_id:
+          type: integer
+          description: ID of the recommended movie
+        title:
+          type: string
+          description: Title of the recommended movie
+        explaination:
+          type: string
+          description: Explanation of why the movie was recommended
+ 
+    # Watchlists -------------------------------------------------------------
+    WatchlistCreate:
+      type: object
+      required: [user_id, title]
+      properties:
+        user_id:
+          type: string
+          minLength: 1
+          examples: ["42"]
+        title:
+          type: string
+          minLength: 1
+          examples: [My Favourites]
+    WatchlistUpdate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          examples: [Updated Title]
+    WatchlistOut:
+      type: object
+      required: [watchlist_id, user_id, title]
+      properties:
+        watchlist_id:
+          type: integer
+        user_id:
+          type: string
+        title:
+          type: string
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+    WatchlistDetailOut:
+      type: object
+      required: [watchlist_id, user_id, title]
+      properties:
+        watchlist_id:
+          type: integer
+        user_id:
+          type: string
+        title:
+          type: string
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        movies:
+          type: array
+          items:
+            $ref: "#/components/schemas/WatchlistMovieOut"
+          default: []
+    WatchlistMovieOut:
+      type: object
+      required: [watchlist_id, movie_id]
+      properties:
+        watchlist_id:
+          type: integer
+        movie_id:
+          type: integer
+        added_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+    AddMovieBody:
+      type: object
+      required: [movie_id]
+      properties:
+        movie_id:
+          type: integer
+          minimum: 1
+          description: ID of the movie to add
+
+  parameters:
+    user_id:
+      name: user_id
+      in: path
+      required: true
+      description: Unique identifier of the user
+      schema:
+        type: integer
+    
+    movie_id:
+      name: movie_id
+      in: path
+      required: true
+      description: Unique identifier of the movie
+      schema:
+        type: integer
+
+    cast_id:
+      name: cast_id
+      in: path
+      required: true
+      description: Unique identifier of the cast member
+      schema:
+        type: integer
+
+    badge_id:
+      name: badge_id
+      in: path
+      required: true
+      description: Unique identifier of the badge
+      schema:
+        type: integer
+        minimum: 1
+
+    watchlist_id:
+      name: watchlist_id
+      in: path
+      required: true
+      description: Unique identifier of the watchlist
+      schema:
+        type: integer
+        minimum: 1
+
+    rating_id:
+      name: rating_id
+      in: path
+      required: true
+      description: Unique identifier of the rating
+      schema:
+        type: integer
+        
+paths:
+  # Health --------------------------------------------------------------------
+  /users-service/health:
+    get:
+      summary: Users service health check
+      operationId: users_health
+      description: Returns the liveness status of the users-service.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: [ok]
+  
+  /movies-service/health:
+    get:
+      summary: Movies service health check
+      operationId: movies_health
+      description: Returns the liveness status of the movies-service.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: [ok]
+    
+  /subscriptions-service/health:
+    get:
+      summary: Movies service health check
+      operationId: subscriptions_health
+      description: Returns the liveness status of the subscriptions-service.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: [ok]
+  
+  /badges-service/health:
+    get:
+      tags: [Health]
+      summary: Badges service health check
+      operationId: badges_health
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+ 
+  /reviews-service/health:
+    get:
+      tags: [Health]
+      summary: Reviews service health check
+      operationId: reviews_health
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+ 
+  /recommendations-service/health:
+    get:
+      tags: [Health]
+      summary: Recommendations service health check
+      operationId: recommendations_health
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+ 
+  /watchlists-service/health:
+    get:
+      tags: [Health]
+      summary: Watchlists service health check
+      operationId: watchlists_health
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+  
+  # Auth ------------------------------------------------------------------------
+  /users-service/login:
+    post:
+      summary: Login
+      operationId: login
+      description: >
+        Authenticate with username and password.
+        Returns a Keycloak JWT `access_token` to use as `Bearer <token>` on protected endpoints.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        '401':
+          description: Invalid username or password
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+
+  # Users ---------------------------------------------------------------------------
+  /users-service/users:
+    get:
+      summary: List users
+      operationId: list_users
+      description: >
+        Retrieve a paginated list of users. All filters are optional and combinable.
+        Results are limited to `limit` entries starting at `offset`.
+      tags:
+        - Users
+      parameters:
+        - name: username
+          in: query
+          required: false
+          description: Partial, case-insensitive match on username
+          schema:
+            type: string
+        - name: gender
+          in: query
+          required: false
+          description: "Exact match — one of: M, F, NB, O"
+          schema:
+            type: string
+            enum: [M, F, NB, O]
+        - name: age_min
+          in: query
+          required: false
+          description: Minimum age (inclusive)
+          schema:
+            type: integer
+        - name: age_max
+          in: query
+          required: false
+          description: Maximum age (inclusive)
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results (default 20)
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: Pagination offset (default 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Register user
+      operationId: register_user
+      description: >
+        Register a new user. Creates the profile in the local database
+        and registers the identity in Keycloak so the user can immediately log in.
+
+        **Password rules:** minimum 15 characters, at least one uppercase letter,
+        one digit and one special character.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegister"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        '409':
+          description: Username or email already exists
+        '422':
+          description: Validation error (password too weak, invalid gender, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /users-service/users/{user_id}:
+    get:
+      summary: Get user
+      operationId: get_user
+      description: Retrieve a single user profile by ID.
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        '404':
+          description: User not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update user
+      operationId: update_user
+      description: >
+        Update the authenticated user's own profile.
+        A user can only update their own account — attempting to update another user's profile returns 403.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Cannot update another user's profile
+        '404':
+          description: User not found
+        '409':
+          description: Username already taken
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete user
+      operationId: delete_user
+      description: >
+        Delete the authenticated user's own account.
+        Also removes the identity from Keycloak.
+        A user can only delete their own account.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '204':
+          description: User deleted successfully
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Cannot delete another user's account
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  /users-service/users/{user_id}/admin:
+    patch:
+      summary: Set admin privileges
+      operationId: set_admin
+      description: >
+        Promote or revoke admin privileges for a user.
+        **Requires admin Bearer token.**
+        Updates both the local database flag and the Keycloak realm role.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - name: is_admin
+          in: query
+          required: false
+          description: true to promote, false to revoke (default true)
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Admin status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Caller does not have the admin role
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  # Movies -------------------------------------------------------------------
+  /movies-service/movies:
+    get:
+      summary: List movies
+      operationId: list_movies
+      description: >
+        Retrieve a paginated list of movies. Only returns non-deleted movies.
+        All filters are optional and combinable.
+      tags:
+        - Movies
+      parameters:
+        - name: title
+          in: query
+          required: false
+          description: Partial, case-insensitive match on movie title
+          schema:
+            type: string
+        - name: genre
+          in: query
+          required: false
+          description: Partial, case-insensitive match on genre name
+          schema:
+            type: string
+        - name: release_year
+          in: query
+          required: false
+          description: Exact release year filter
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results (1–100, default 20)
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          description: Pagination offset (default 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MovieResponse"
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Create movie
+      operationId: create_movie
+      description: >
+        Add a new movie to the catalog.
+        **Requires admin Bearer token.**
+        Genres must already exist in the database — see `GET /genres`.
+      tags:
+        - Movies
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieCreate"
+      responses:
+        '201':
+          description: Movie created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieResponse"
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Admin role required
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /movies-service/movies/{movie_id}:
+    get:
+      summary: Get movie
+      operationId: get_movie
+      description: Retrieve a single non-deleted movie by ID, including its genres and cast.
+      tags:
+        - Movies
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        '200':
+          description: Movie retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieResponse"
+        '404':
+          description: Movie not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update movie
+      operationId: update_movie
+      description: >
+        Update an existing movie.
+        **Requires admin Bearer token.**
+        All fields are optional. If `genres` is provided it **replaces** the entire genre list.
+      tags:
+        - Movies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieUpdate"
+      responses:
+        '200':
+          description: Movie updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieResponse"
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Admin role required
+        '404':
+          description: Movie not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete movie
+      operationId: delete_movie
+      description: >
+        Soft-delete a movie.
+        **Requires admin Bearer token.**
+        The movie is not physically removed — `is_deleted` is set to `true`
+        and the movie is hidden from all listing and search results.
+      tags:
+        - Movies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        '204':
+          description: Movie soft-deleted successfully
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Admin role required
+        '404':
+          description: Movie not found
+        '500':
+          description: Internal server error
+
+  
+  # Genres ----------------------------------------------------------------------
+  /movies-service/genres:
+    get:
+      summary: List genres
+      operationId: list_genres
+      description: Retrieve all available genre definitions, ordered alphabetically.
+      tags:
+        - Genres
+      responses:
+        '200':
+          description: Genres retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GenreResponse"
+        '500':
+          description: Internal server error
+  
+  # Cast ----------------------------------------------------------------------
+  /movies-service/movies/{movie_id}/cast:
+    get:
+      summary: Get movie cast
+      operationId: get_cast
+      description: Retrieve all cast members for a given movie.
+      tags:
+        - Cast
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        '200':
+          description: Cast retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CastMemberResponse"
+        '404':
+          description: Movie not found
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Add cast member
+      operationId: add_cast_member
+      description: >
+        Add a cast member to a movie.
+        **Requires admin Bearer token.**
+      tags:
+        - Cast
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CastMemberCreate"
+      responses:
+        '201':
+          description: Cast member added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CastMemberResponse"
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Admin role required
+        '404':
+          description: Movie not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        '500':
+          description: Internal server error
+
+  /movies-service/movies/{movie_id}/cast/{cast_id}:
+    delete:
+      summary: Remove cast member
+      operationId: remove_cast_member
+      description: >
+        Remove a cast member from a movie.
+        **Requires admin Bearer token.**
+      tags:
+        - Cast
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+        - $ref: "#/components/parameters/cast_id"
+      responses:
+        '204':
+          description: Cast member removed successfully
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: Admin role required
+        '404':
+          description: Cast member not found
+        '500':
+          description: Internal server error
+
+   # ── Badges ────────────────────────────────────────────────────────────────
+  /badges-service/badges:
+    get:
+      tags: [Badges]
+      summary: List badge definitions
+      operationId: list_badges
+      description: Retrieve all badge definitions.
+      responses:
+        "200":
+          description: Badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BadgeOut"
+ 
+    post:
+      tags: [Badges]
+      summary: Create badge definition
+      operationId: create_badge
+      description: >
+        Create a new badge definition.
+        **Requires admin Bearer token.**
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadgeCreate"
+      responses:
+        "201":
+          description: Badge created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /badges-service/badges/{badge_id}:
+    get:
+      tags: [Badges]
+      summary: Get badge definition
+      operationId: get_badge
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      responses:
+        "200":
+          description: Badge retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeOut"
+        "404":
+          description: Badge not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+    put:
+      tags: [Badges]
+      summary: Update badge definition
+      operationId: update_badge
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadgeUpdate"
+      responses:
+        "200":
+          description: Badge updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Badge not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+    delete:
+      tags: [Badges]
+      summary: Delete badge definition
+      operationId: delete_badge
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/badge_id"
+      responses:
+        "204":
+          description: Badge deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Badge not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /badges-service/users/{user_id}/badges:
+    get:
+      tags: [Badges]
+      summary: List user badges
+      operationId: get_user_badges
+      description: List all badges awarded to a specific user.
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: User badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserBadgeOut"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+    post:
+      tags: [Badges]
+      summary: Award badge to user
+      operationId: award_badge
+      description: >
+        Award a badge to a user.
+        **Requires admin Bearer token.**
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AwardBadgeBody"
+      responses:
+        "201":
+          description: Badge awarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserBadgeOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  # ── Subscriptions ─────────────────────────────────────────────────────────
+  /subscriptions-service/users/{user_id}/subscription:
+    post:
+      tags: [Subscriptions]
+      summary: Create subscription
+      operationId: create_subscription
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscription"
+      responses:
+        "201":
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          description: User already has a subscription, or paid subscription missing start_date/end_date, or end_date before start_date
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    get:
+      tags: [Subscriptions]
+      summary: Get subscription
+      operationId: get_subscription
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or subscription not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    put:
+      tags: [Subscriptions]
+      summary: Update subscription
+      operationId: update_subscription
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscription"
+      responses:
+        "200":
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          description: Paid subscription missing start_date/end_date, or end_date before start_date
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or subscription not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    delete:
+      tags: [Subscriptions]
+      summary: Delete subscription
+      operationId: delete_subscription
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "204":
+          description: Subscription deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or subscription not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  # ── Reviews / Ratings ─────────────────────────────────────────────────────
+  /reviews-service/ratings:
+    post:
+      tags: [Reviews]
+      summary: Create rating
+      operationId: create_rating
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingCreate"
+      responses:
+        "201":
+          description: Rating created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User or movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    get:
+      tags: [Reviews]
+      summary: List ratings
+      operationId: get_ratings
+      description: Retrieve ratings with optional filters.
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          description: Filter by user ID
+          schema:
+            anyOf: [{ type: integer }, { type: "null" }]
+        - name: movie_id
+          in: query
+          required: false
+          description: Filter by movie ID
+          schema:
+            anyOf: [{ type: integer }, { type: "null" }]
+        - name: min_rating
+          in: query
+          required: false
+          description: Minimum rating value (1–5)
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: max_rating
+          in: query
+          required: false
+          description: Maximum rating value (1–5)
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: skip
+          in: query
+          required: false
+          description: Number of records to skip (default 0)
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          required: false
+          description: Maximum records to return (default 100, max 1000)
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 100 }
+      responses:
+        "200":
+          description: Ratings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+        "404":
+          description: No ratings match the specified criteria
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /reviews-service/ratings/{rating_id}:
+    get:
+      tags: [Reviews]
+      summary: Get rating
+      operationId: get_rating
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      responses:
+        "200":
+          description: Rating retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "404":
+          description: Rating not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    put:
+      tags: [Reviews]
+      summary: Update rating
+      operationId: update_rating
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRating"
+      responses:
+        "200":
+          description: Rating updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "401":
+          description: Missing or invalid Bearer token
+        "403":
+          description: Cannot update another user's rating
+        "404":
+          description: Rating not found
+        "422":
+          description: Validation error or no fields provided for update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    delete:
+      tags: [Reviews]
+      summary: Delete rating
+      operationId: delete_rating
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/rating_id"
+      responses:
+        "200":
+          description: Rating deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "403":
+          description: Cannot delete another user's rating
+        "404":
+          description: Rating not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /reviews-service/movies/{movie_id}/ratings:
+    post:
+      tags: [Reviews]
+      summary: Create movie rating
+      operationId: create_movie_rating
+      description: Submit a rating for a specific movie.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieRating"
+      responses:
+        "201":
+          description: Rating created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User or movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    get:
+      tags: [Reviews]
+      summary: Get movie ratings
+      operationId: get_movie_ratings
+      description: Retrieve all ratings for a specific movie.
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+        - name: user_id
+          in: query
+          required: false
+          description: Filter by user ID
+          schema:
+            anyOf: [{ type: integer }, { type: "null" }]
+        - name: min_rating
+          in: query
+          required: false
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: max_rating
+          in: query
+          required: false
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: tag
+          in: query
+          required: false
+          description: Filter by tag
+          schema:
+            anyOf: [{ type: string }, { type: "null" }]
+        - name: skip
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 100 }
+      responses:
+        "200":
+          description: Ratings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+        "404":
+          description: Movie not found or no ratings found for the specified criteria
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /reviews-service/users/{user_id}/ratings:
+    get:
+      tags: [Reviews]
+      summary: Get user ratings
+      operationId: get_user_ratings
+      description: Retrieve all ratings submitted by a specific user.
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - name: movie_id
+          in: query
+          required: false
+          schema:
+            anyOf: [{ type: integer }, { type: "null" }]
+        - name: min_rating
+          in: query
+          required: false
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: max_rating
+          in: query
+          required: false
+          schema:
+            anyOf: [{ type: number, minimum: 1, maximum: 5 }, { type: "null" }]
+        - name: skip
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 100 }
+      responses:
+        "200":
+          description: Ratings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+        "404":
+          description: User not found or no ratings found for the specified criteria
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /reviews-service/movies/{movie_id}/review-summary:
+    get:
+      tags: [Reviews]
+      summary: Get movie review summary
+      operationId: get_review_summary
+      description: Retrieve an aggregated review summary for a movie.
+      parameters:
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        "200":
+          description: Review summary retrieved successfully
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Movie not found or no analyzed reviews exist for this movie
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  # ── Recommendations ───────────────────────────────────────────────────────
+  /recommendations-service/users/{user_id}/preferences:
+    post:
+      tags: [Recommendations]
+      summary: Create user preference
+      operationId: create_user_preference
+      description: Add a genre preference for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserPreference"
+      responses:
+        "200":
+          description: Preference created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreference"
+        "400":
+          description: User preference for this genre already exists
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User or genre not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    get:
+      tags: [Recommendations]
+      summary: Get user preferences
+      operationId: get_user_preferences
+      description: Retrieve all genre preferences for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: Preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPreference"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or no preferences found for this user
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /recommendations-service/users/{user_id}/preferences/{genre_id}:
+    delete:
+      tags: [Recommendations]
+      summary: Delete user preference
+      operationId: delete_user_preference
+      description: Remove a genre preference for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - name: genre_id
+          in: path
+          required: true
+          description: ID of the genre preference to remove
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Preference deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or preference not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /recommendations-service/users/{user_id}/reference-movies:
+    post:
+      tags: [Recommendations]
+      summary: Add reference movie
+      operationId: add_reference_movie
+      description: Add a reference movie used to seed recommendations for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - name: movie_id
+          in: query
+          required: true
+          description: ID of the reference movie
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reference movie added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferenceMovie"
+        "400":
+          description: Reference movie already exists for this user
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User or movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+    get:
+      tags: [Recommendations]
+      summary: Get reference movies
+      operationId: get_reference_movies
+      description: Retrieve all reference movies for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: Reference movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReferenceMovie"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or no reference movies found for this user
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /recommendations-service/users/{user_id}/reference-movies/{movie_id}:
+    delete:
+      tags: [Recommendations]
+      summary: Delete reference movie
+      operationId: delete_reference_movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        "200":
+          description: Reference movie deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found, movie not found, or reference movie not found for this user
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /recommendations-service/recommendations/{user_id}:
+    get:
+      tags: [Recommendations]
+      summary: Get recommendations
+      operationId: get_recommendations
+      description: Retrieve personalised movie recommendations for a user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: Recommendations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Recommendation"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error
+ 
+  /recommendations-service/recommendations/{user_id}/explained:
+    get:
+      tags: [Recommendations]
+      summary: Get explained recommendations
+      operationId: get_recommendations_explained
+      description: Retrieve personalised movie recommendations with explanations.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: Explained recommendations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExplainedRecommendation"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found or no recommendations to explain
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+        "500":
+          description: Internal server error (e.g. explanation generation failed)
+ 
+  # ── Watchlists ────────────────────────────────────────────────────────────
+  /watchlists-service/watchlists:
+    get:
+      tags: [Watchlists]
+      summary: List all watchlists
+      operationId: list_watchlists
+      responses:
+        "200":
+          description: Watchlists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchlistOut"
+ 
+    post:
+      tags: [Watchlists]
+      summary: Create watchlist
+      operationId: create_watchlist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchlistCreate"
+      responses:
+        "201":
+          description: Watchlist created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /watchlists-service/watchlists/{watchlist_id}:
+    get:
+      tags: [Watchlists]
+      summary: Get watchlist
+      operationId: get_watchlist
+      description: Retrieve a watchlist with its full movie list.
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      responses:
+        "200":
+          description: Watchlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistDetailOut"
+        "404":
+          description: Watchlist not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+    put:
+      tags: [Watchlists]
+      summary: Update watchlist
+      operationId: update_watchlist
+      description: Update the title of a watchlist.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchlistUpdate"
+      responses:
+        "200":
+          description: Watchlist updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Watchlist not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+    delete:
+      tags: [Watchlists]
+      summary: Delete watchlist
+      operationId: delete_watchlist
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      responses:
+        "204":
+          description: Watchlist deleted successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Watchlist not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /watchlists-service/watchlists/{watchlist_id}/movies:
+    post:
+      tags: [Watchlists]
+      summary: Add movie to watchlist
+      operationId: add_movie_to_watchlist
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMovieBody"
+      responses:
+        "201":
+          description: Movie added to watchlist successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistMovieOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Watchlist not found
+        "409":
+          description: Movie already exists in this watchlist
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /watchlists-service/watchlists/{watchlist_id}/movies/{movie_id}:
+    delete:
+      tags: [Watchlists]
+      summary: Remove movie from watchlist
+      operationId: remove_movie_from_watchlist
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/watchlist_id"
+        - $ref: "#/components/parameters/movie_id"
+      responses:
+        "204":
+          description: Movie removed from watchlist successfully
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: Watchlist or movie not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+ 
+  /watchlists-service/users/{user_id}/watchlist:
+    get:
+      tags: [Watchlists]
+      summary: List user watchlists
+      operationId: get_user_watchlists
+      description: Retrieve all watchlists belonging to a specific user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        "200":
+          description: User watchlists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchlistOut"
+        "401":
+          description: Missing or invalid Bearer token
+        "404":
+          description: User not found
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"

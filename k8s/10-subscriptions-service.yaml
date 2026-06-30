@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subscriptions-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subscriptions-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8005"
+      labels:
+        app: subscriptions-service
+    spec:
+      containers:
+      - name: subscriptions-service
+        image: leonor2004/subscriptions-service:v10
+        imagePullPolicy: Always
+        ports:
+        - name: rest
+          containerPort: 8005
+        - name: grpc
+          containerPort: 50057
+        env:
+        - name: DB_HOST
+          value: postgres-subscriptions
+        - name: DB_NAME
+          value: subscriptions_db
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: group8-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: group8-secret
+              key: DB_PASSWORD
+        - name: USER_GRPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: group8-config
+              key: USER_GRPC_URL
+        - name: GRPC_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: group8-config
+              key: SUBSCRIPTIONS_GRPC_PORT
+        - name: KEYCLOAK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: group8-config
+              key: KEYCLOAK_URL
+        - name: KEYCLOAK_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: group8-config
+              key: KEYCLOAK_REALM
+        - name: KEYCLOAK_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: group8-config
+              key: KEYCLOAK_CLIENT_ID
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: group8-secret
+              key: KEYCLOAK_CLIENT_SECRET
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subscriptions-service
+  namespace: default
+spec:
+  selector:
+    app: subscriptions-service
+  ports:
+  - name: rest
+    port: 8005
+    targetPort: 8005
+  - name: grpc
+    port: 50057
+    targetPort: 50057
+  type: ClusterIP

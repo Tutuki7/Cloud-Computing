@@ -1,0 +1,4 @@
+- name: Apply Network Policies
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/14-network-policies.yaml"

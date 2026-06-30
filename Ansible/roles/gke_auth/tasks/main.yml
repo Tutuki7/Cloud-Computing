@@ -1,0 +1,14 @@
+- name: Get GKE credentials
+  ansible.builtin.command: >-
+    gcloud container clusters get-credentials {{ gke_cluster_name }}
+    --zone {{ gcp_zone }}
+    --project {{ gcp_project }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
+
+- name: Verify cluster access
+  ansible.builtin.command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false

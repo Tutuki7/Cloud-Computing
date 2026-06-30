@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: group8-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ ingress_host }}
+      secretName: group8-tls
+  rules:
+    - host: {{ ingress_host }}
+      http:
+        paths:
+          - path: /users-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: users-service
+                port:
+                  number: 8001
+          - path: /movies-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: movies-service
+                port:
+                  number: 8002
+          - path: /reviews-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: review-service
+                port:
+                  number: 8003
+          - path: /recommendations-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: recommendations-service
+                port:
+                  number: 8004
+          - path: /subscriptions-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: subscriptions-service
+                port:
+                  number: 8005
+          - path: /badges-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: badges-service
+                port:
+                  number: 8006
+          - path: /watchlists-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: watchlists-service
+                port:
+                  number: 8007

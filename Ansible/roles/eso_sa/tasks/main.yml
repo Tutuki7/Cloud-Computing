@@ -1,0 +1,21 @@
+- name: Ensure ESO service account exists
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: eso-sa
+        namespace: default
+
+- name: Annotate ESO service account for Workload Identity
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: eso-sa
+        namespace: default
+        annotations:
+          iam.gke.io/gcp-service-account: "eso-sa@{{ gcp_project }}.iam.gserviceaccount.com"

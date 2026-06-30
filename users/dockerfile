@@ -1,0 +1,29 @@
+FROM python:3.11-slim
+
+WORKDIR /users
+
+COPY requirements.txt requirements.txt
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mv grpc grpc_files
+
+RUN python -m grpc_tools.protoc \
+    -I=grpc_files \
+    --python_out=grpc_files \
+    --grpc_python_out=grpc_files \
+    grpc_files/users.proto
+
+RUN sed -i 's/\r//' start.sh
+RUN chmod +x start.sh
+
+EXPOSE 8001
+EXPOSE 50053
+
+CMD ["/bin/sh", "/users/start.sh"]

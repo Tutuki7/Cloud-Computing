@@ -1,0 +1,74 @@
+# -----------------------------------------------------------------------
+# Keycloak 24 — Identity Provider (replaces custom JWT auth in users-service)
+# Deployed as a StatefulSet with a PVC for persistent realm data.
+# Admin console: http://<node-ip>:30080/admin  (NodePort, dev only)
+# -----------------------------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+  namespace: default
+spec:
+  serviceName: keycloak
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0
+          args: ["start-dev"]          # use 'start' + TLS for production
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: "admin"
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: ADMIN_PASSWORD
+            - name: KC_DB
+              value: "dev-file"        # embedded H2 for dev; swap to 'postgres' for prod
+            - name: KC_HOSTNAME_URL
+              value: "http://keycloak:8080"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /opt/keycloak/data
+  volumeClaimTemplates:
+    - metadata:
+        name: keycloak-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: default
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

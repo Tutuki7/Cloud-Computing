@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package subscriptions;
+
+import "google/protobuf/timestamp.proto";
+
+message Subscription {
+  int32 subscription_id = 1;
+  int32 user_id = 2;
+  string type = 3;
+  string status = 4;
+  google.protobuf.Timestamp start_date = 5;
+  google.protobuf.Timestamp end_date = 6;
+}
+
+message GetUserSubscriptionRequest {
+  int32 user_id = 1;
+}
+
+message GetUserSubscriptionResponse {
+  Subscription subscription = 1;
+}
+
+service SubscriptionService {
+  rpc GetUserSubscription(GetUserSubscriptionRequest)
+      returns (GetUserSubscriptionResponse);
+}

@@ -1,0 +1,5 @@
+- name: Apply seed jobs one by one
+  ansible.builtin.include_tasks: apply_and_wait.yml
+  loop: "{{ seed_jobs }}"
+  loop_control:
+    loop_var: seed_target

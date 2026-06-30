@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-db-badges
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: populate-db-badges
+          image: tpina17/populate-db-badges:v4
+          imagePullPolicy: Always
+          env:
+            - name: DB_HOST
+              value: postgres-badges
+            - name: DB_NAME
+              value: badges_db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: group8-secret
+                  key: DB_PASSWORD

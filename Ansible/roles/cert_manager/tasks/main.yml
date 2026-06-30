@@ -1,0 +1,34 @@
+- name: Add Jetstack Helm repo
+  kubernetes.core.helm_repository:
+    name: jetstack
+    repo_url: https://charts.jetstack.io
+
+- name: Install cert-manager
+  kubernetes.core.helm:
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    chart_version: v1.14.5
+    release_namespace: "{{ cert_manager_namespace }}"
+    create_namespace: true
+    wait: true
+    values:
+      installCRDs: true
+
+- name: Wait for cert-manager webhook to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: cert-manager-webhook
+    namespace: "{{ cert_manager_namespace }}"
+  register: webhook
+  until: >
+    webhook.resources | length > 0 and
+    (webhook.resources[0].status.readyReplicas | default(0)) >= 1
+  retries: 20
+  delay: 10
+
+- name: Apply ClusterIssuer                         # ← new: was missing entirely, caused READY=False on cert
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ manifests_dir }}/15-cluster-issuer.yaml"
+  retries: 5
+  delay: 10
