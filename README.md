@@ -3,13 +3,13 @@
 **Course:** Cloud Computing | 2025/2026
 
 ## Group 8
-Joana Carrasqueira, 64414
+[Joana Carrasqueira, 64414](https://github.com/jcarrasqueira)
 
-Leonor Silva, 59811
+[Leonor Silva, 59811](https://github.com/lpmsilva)
 
 Tiago Pereira, 55854
 
-Tiago Pina, 66101
+[Tiago Pina, 66101](https://github.com/tiagopina17)
 
 ---
 ## Motivation
