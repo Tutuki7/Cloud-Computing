@@ -11,6 +11,7 @@ Tiago Pereira, 55854
 
 [Tiago Pina, 66101](https://github.com/tiagopina17)
 
+#### This repository represents a version for portfolio purposes, based on the work developed in a group.
 ---
 ## Motivation
 The project addresses the challenge of building a scalable, cloud-native content platform that unifies movie discovery, community engagement, and AI-powered personalisation in a single deployable system.
